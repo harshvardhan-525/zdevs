@@ -1,0 +1,809 @@
+/* =========================================
+   BHOOMI — THE LIVING EARTH
+   New Editorial / Geospatial Design
+========================================= */
+
+
+/* MAIN THEME */
+
+body {
+    background: #EAE9DF;
+    color: #172B23;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.app-container {
+    display: block;
+    min-height: 100vh;
+}
+
+.main-content {
+    background: #EAE9DF;
+    min-height: 100vh;
+    color: #172B23;
+}
+
+
+/* TOP NAVIGATION */
+
+.main-header {
+    min-height: 88px;
+    padding: 0 6%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #F4F2E9;
+    border-bottom: 1px solid #D8D9CE;
+    gap: 30px;
+}
+
+.brand {
+    flex-shrink: 0;
+}
+
+.brand h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 30px;
+    letter-spacing: 2px;
+    font-weight: 700;
+    color: #173D2B;
+}
+
+.brand h2 span {
+    color: #B36B36;
+    font-size: 34px;
+}
+
+.brand p {
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #7D8979;
+    margin-top: 2px;
+}
+
+.main-nav {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.nav-link {
+    color: #778177;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 34px 0;
+    position: relative;
+    transition: 0.25s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: #214D35;
+}
+
+.nav-link.active::after {
+    content: "";
+    position: absolute;
+    bottom: 23px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #B36B36;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #55705D;
+    flex-shrink: 0;
+}
+
+.online-dot {
+    height: 7px;
+    width: 7px;
+    border-radius: 50%;
+    background: #74A66B;
+    box-shadow: 0 0 8px #74A66B;
+}
+
+.header-location {
+    margin-left: 15px;
+    padding-left: 15px;
+    border-left: 1px solid #D4D8CC;
+    color: #8A745D;
+}
+
+
+/* HERO SECTION */
+
+.hero-section {
+    padding: 75px 8% 65px;
+    display: grid;
+    grid-template-columns: 1.4fr 0.6fr;
+    background:
+        radial-gradient(
+            circle at 85% 50%,
+            rgba(175, 190, 151, 0.25),
+            transparent 35%
+        ),
+        #EAE9DF;
+    border-bottom: 1px solid #D8D9CE;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-left {
+    position: relative;
+    z-index: 2;
+}
+
+.section-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    font-weight: 700;
+    color: #A56B3E;
+}
+
+.hero-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(55px, 7vw, 91px);
+    line-height: 1.03;
+    font-weight: 400;
+    letter-spacing: -2px;
+    margin: 25px 0;
+    color: #193A29;
+}
+
+.hero-left h1 span {
+    color: #A56B3E;
+    font-style: italic;
+}
+
+.hero-description {
+    max-width: 450px;
+    font-size: 13px;
+    line-height: 1.9;
+    color: #778177;
+}
+
+.hero-location {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 35px;
+    padding-top: 22px;
+    border-top: 1px solid #D2D6C9;
+    width: 340px;
+}
+
+.location-icon {
+    font-size: 25px;
+    color: #A56B3E;
+}
+
+.hero-location small {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: #8C9787;
+}
+
+.hero-location h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    margin-top: 5px;
+    color: #254B35;
+}
+
+
+/* HERO DECORATION */
+
+.hero-right {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: relative;
+    padding: 10px 0;
+}
+
+.hero-visual-label {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: #8A9684;
+}
+
+.hero-decoration {
+    position: absolute;
+    top: 75px;
+    right: 15px;
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    border: 1px solid rgba(57, 99, 67, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(57, 99, 67, 0.2);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    gap: 10px;
+}
+
+.hero-decoration::before {
+    content: "";
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    border-radius: 50%;
+    border: 1px dashed rgba(57, 99, 67, 0.25);
+}
+
+.hero-decoration::after {
+    content: "";
+    position: absolute;
+    width: 125px;
+    height: 125px;
+    border-radius: 50%;
+    background: rgba(122, 157, 102, 0.09);
+    border: 1px solid rgba(57, 99, 67, 0.2);
+}
+
+.hero-big-number {
+    position: absolute;
+    font-family: 'DM Serif Display', serif;
+    font-size: 180px;
+    color: rgba(40, 76, 48, 0.055);
+    right: 15px;
+    bottom: -5px;
+    line-height: 1;
+}
+
+.hero-right > p {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #8A9684;
+}
+
+
+/* METRICS */
+
+.metrics-section {
+    padding: 50px 8%;
+    background: #F4F2E9;
+    border-bottom: 1px solid #D8D9CE;
+}
+
+.metrics-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+}
+
+.metrics-heading h2,
+.section-heading h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    font-weight: 400;
+    color: #193A29;
+    margin-top: 8px;
+}
+
+.data-label {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #A07855;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid #DADCD1;
+}
+
+.metric-item {
+    padding: 25px;
+    border-right: 1px solid #DADCD1;
+    transition: 0.3s;
+}
+
+.metric-item:last-child {
+    border-right: none;
+}
+
+.metric-item:hover {
+    background: #E9EDE1;
+}
+
+.metric-icon {
+    color: #A56B3E;
+    font-size: 21px;
+    margin-bottom: 15px;
+}
+
+.metric-item p {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    color: #849080;
+}
+
+.metric-item h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 35px;
+    font-weight: 600;
+    color: #244B34;
+    margin: 10px 0 5px;
+}
+
+.metric-item h3 span {
+    font-size: 16px;
+    color: #A56B3E;
+}
+
+.metric-item small {
+    font-size: 10px;
+    color: #929B8D;
+}
+
+
+/* OBSERVATION SECTION */
+
+.observation-section {
+    padding: 65px 8%;
+}
+
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+}
+
+.observation-tag {
+    border: 1px solid #C7CEBD;
+    padding: 9px 14px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #657B60;
+}
+
+.observation-grid {
+    display: grid;
+    grid-template-columns: 1.7fr 0.8fr;
+    gap: 22px;
+    align-items: stretch;
+}
+
+
+/* SATELLITE MAP */
+
+.satellite-card {
+    background: #F4F2E9;
+    border: 1px solid #D6D9CE;
+    padding: 20px;
+}
+
+.satellite-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.satellite-top > div > span {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: #A56B3E;
+}
+
+.satellite-top h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px;
+    font-weight: 400;
+    color: #193A29;
+    margin-top: 5px;
+}
+
+.live-status {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #648B5B;
+}
+
+#climate-map {
+    width: 100%;
+    height: 470px;
+    background: #DCE1D5;
+    border: 1px solid #CFD5C9;
+    z-index: 1;
+}
+
+.map-bottom {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 16px;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #82907C;
+}
+
+
+/* AI INTELLIGENCE */
+
+.intelligence-card {
+    background: #193A29;
+    color: #F4F2E9;
+    padding: 30px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.intelligence-top {
+    display: flex;
+    justify-content: space-between;
+}
+
+.intelligence-top .section-label {
+    color: #C49A70;
+}
+
+.intelligence-symbol {
+    font-size: 25px;
+    color: #D5B17D;
+}
+
+.intelligence-card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1.1;
+    margin: 25px 0 12px;
+}
+
+.intelligence-description {
+    font-size: 11px;
+    color: #AEBEAD;
+    line-height: 1.8;
+}
+
+.risk-block {
+    margin-top: 35px;
+}
+
+.risk-block > span {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: #AEBEAD;
+}
+
+.risk-block h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 27px;
+    color: #E4B36E;
+    margin: 12px 0;
+}
+
+.risk-bar {
+    height: 4px;
+    background: #49614C;
+}
+
+.risk-bar div {
+    width: 58%;
+    height: 100%;
+    background: #D9AA67;
+}
+
+.intelligence-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.15);
+    margin: 27px 0;
+}
+
+.ai-insight {
+    display: flex;
+    gap: 13px;
+    margin-bottom: 25px;
+}
+
+.ai-insight > span {
+    font-family: 'Space Grotesk', sans-serif;
+    color: #D9AA67;
+    font-size: 12px;
+}
+
+.ai-insight h4 {
+    font-size: 12px;
+    margin-bottom: 7px;
+    color: #F4F2E9;
+}
+
+.ai-insight p {
+    font-size: 10px;
+    color: #AEBEAD;
+    line-height: 1.7;
+}
+
+.intelligence-footer {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: #D9AA67;
+}
+
+
+/* ANALYSIS SECTION */
+
+.analysis-section {
+    padding: 55px 8% 75px;
+    background: #F4F2E9;
+    border-top: 1px solid #D8D9CE;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+}
+
+.analysis-card {
+    background: #EAE9DF;
+    padding: 27px;
+    border: 1px solid #D8D9CE;
+    position: relative;
+    transition: 0.3s;
+}
+
+.analysis-card:hover {
+    transform: translateY(-5px);
+    border-color: #A5B398;
+}
+
+.analysis-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 45px;
+    color: rgba(47, 91, 57, 0.12);
+    position: absolute;
+    top: 12px;
+    right: 20px;
+}
+
+.analysis-card .section-label {
+    margin-bottom: 20px;
+}
+
+.analysis-card h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px;
+    font-weight: 400;
+    color: #193A29;
+    margin: 12px 0;
+}
+
+.analysis-card > p:not(.section-label) {
+    font-size: 11px;
+    color: #849080;
+    line-height: 1.8;
+    min-height: 60px;
+}
+
+.analysis-parameters {
+    margin-top: 22px;
+}
+
+.analysis-parameters > div {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-top: 1px solid #D2D8CB;
+    font-size: 10px;
+    color: #657B60;
+}
+
+.parameter-status {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #A56B3E;
+    font-weight: 700;
+}
+
+.prediction-card {
+    background: #E7E8D9;
+}
+
+
+/* FOOTER */
+
+.main-footer {
+    padding: 35px 8%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #193A29;
+    color: #F4F2E9;
+}
+
+.main-footer h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+}
+
+.main-footer h2 span {
+    color: #D9AA67;
+}
+
+.main-footer p {
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #AEBEAD;
+}
+
+.main-footer > span {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: #AEBEAD;
+}
+
+
+/* RESPONSIVE DESIGN */
+
+@media (max-width: 1100px) {
+
+    .main-header {
+        padding: 20px 4%;
+        flex-wrap: wrap;
+    }
+
+    .main-nav {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        gap: 20px;
+    }
+
+    .nav-link {
+        padding: 15px 0;
+    }
+
+    .nav-link.active::after {
+        bottom: 5px;
+    }
+
+    .hero-section,
+    .metrics-section,
+    .observation-section,
+    .analysis-section {
+        padding-left: 5%;
+        padding-right: 5%;
+    }
+
+    .observation-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analysis-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .main-header {
+        gap: 15px;
+    }
+
+    .main-nav {
+        overflow-x: auto;
+        justify-content: flex-start;
+    }
+
+    .nav-link {
+        white-space: nowrap;
+        font-size: 10px;
+    }
+
+    .header-right {
+        font-size: 8px;
+    }
+
+    .hero-section {
+        grid-template-columns: 1fr;
+        padding-top: 50px;
+    }
+
+    .hero-right {
+        display: none;
+    }
+
+    .hero-left h1 {
+        font-size: 57px;
+    }
+
+    .metrics-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .metric-item:nth-child(2) {
+        border-right: none;
+    }
+
+    .metric-item:nth-child(1),
+    .metric-item:nth-child(2) {
+        border-bottom: 1px solid #DADCD1;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .analysis-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #climate-map {
+        height: 330px;
+    }
+
+    .map-bottom {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .main-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+}
+
+
+@media (max-width: 420px) {
+
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-item {
+        border-right: none;
+        border-bottom: 1px solid #DADCD1;
+    }
+
+    .hero-left h1 {
+        font-size: 48px;
+    }
+
+    .hero-location {
+        width: 100%;
+    }
+
+}

@@ -4,23 +4,19 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#05080a" />
-  <title>BHOOMI</title>
-
-  <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet"> -->
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>BHOOMI — Climate Intelligence for Every Farm</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
   <style>
-    :root { --ink:#05080a; --leaf:#34d399; --cell: 56px; }
+    :root { --ink:#080f0a; --leaf:#34d399; --forest:#123d2b; --ochre:#c58a52; --cell:56px; }
     @media (max-width: 640px) { :root { --cell: 40px; } }
     html { -webkit-text-size-adjust: 100%; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    .serif { font-family: "IBM Plex Serif", ui-serif, Georgia, serif; }
+    body { font-family: "Manrope", ui-sans-serif, system-ui, sans-serif; }
+    .serif, h1, h2, h3 { font-family: "Fraunces", Georgia, serif; }
 
     /* ---- Cinematic overlays for readability ---- */
     .backdrop {
@@ -95,6 +91,31 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     }
+    /* BHOOMI infinity wordmark */
+    .wordmark-infinity,
+    .brand-infinity {
+      display: inline-block;
+      color: #34d399;
+      -webkit-text-fill-color: #34d399;
+      background: none;
+      -webkit-background-clip: initial;
+      background-clip: initial;
+      font-family: "Manrope", sans-serif;
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1;
+      vertical-align: -0.04em;
+      transition: color .3s ease, filter .3s ease;
+    }
+    .wordmark-infinity { font-size: 1.5em; margin: 0 .025em; vertical-align: -0.10em; }
+    .brand-infinity { font-size: 1.3em; margin: 0 .025em; vertical-align: -0.08em; }
+    .wordmark:hover .wordmark-infinity,
+    .wordmark:focus-visible .wordmark-infinity {
+      color: #a7f3d0;
+      -webkit-text-fill-color: #a7f3d0;
+      filter: drop-shadow(0 0 10px rgba(52, 211, 153, .6));
+    }
+    
   </style>
 </head>
 
@@ -129,7 +150,7 @@
       <a href="/" aria-label="BHOOMI home"
          class="wordmark group relative inline-flex items-center rounded-xl px-4 py-2 pb-3 -ml-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#05080a]">
         <span class="wordmark-text serif text-[1.6rem] font-semibold uppercase leading-none tracking-[0.22em] sm:text-[1.9rem] lg:text-[2.1rem]">
-          BHOOMI
+          BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI
         </span>
       </a>
     </header>
@@ -139,14 +160,14 @@
       <div class="w-full max-w-3xl text-center">
 
         <!-- Headline with hover effect -->
-        <h1 class="serif fade-up text-[clamp(1.85rem,6.4vw,4.4rem)] font-semibold uppercase leading-[1.06] tracking-[0.01em] text-white [text-shadow:0_2px_40px_rgba(0,0,0,.6)] transition-all duration-500 hover:text-emerald-300 hover:scale-[1.01] hover:drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]">
+        <h1 class="serif fade-up text-[clamp(1.85rem,6.4vw,4.4rem)] font-semibold leading-[1.06] tracking-[-0.025em] text-white [text-shadow:0_2px_40px_rgba(0,0,0,.6)] transition-all duration-500 hover:text-emerald-300 hover:scale-[1.01] hover:drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]">
           <span class="block">Smart farming.</span>
           <span class="block">Better harvests.</span>
         </h1>
 
         <!-- Subhead -->
         <p class="fade-up mt-5 text-[0.98rem] font-light tracking-wide text-emerald-50/75 sm:text-lg transition-colors duration-300 hover:text-white" style="animation-delay:.08s">
-          Your farm. Your weather. Your future.
+          Climate intelligence for every field.
         </p>
 
         <!-- Login affordance -->
@@ -166,11 +187,11 @@
         <!-- Description -->
         <div class="fade-up mx-auto mt-9 max-w-2xl space-y-4 text-[0.94rem] leading-relaxed text-white/60 sm:text-[1rem] transition-colors duration-300 hover:text-white/90" style="animation-delay:.24s">
           <p>
-            Get real-time weather updates, crop guidance, market prices, and AI-powered
-            farming insights—all in one place.
+            Bring local weather, soil conditions and satellite-based insights together
+            to understand the climate risks around your farm.
           </p>
           <p>
-            Make informed decisions, protect your crops, and grow with confidence.
+            Spot emerging risks earlier and make more informed decisions for every growing season.
           </p>
         </div>
 
@@ -188,7 +209,7 @@
 
         <!-- Tagline -->
         <p class="fade-up mt-12 text-[0.8rem] italic tracking-wide text-white/35 sm:text-sm transition-colors duration-300 hover:text-emerald-400/80" style="animation-delay:.4s">
-          Helping farmers make every season count.
+          Understand your land. Anticipate change. Grow with confidence.
         </p>
       </div>
     </main>
@@ -208,11 +229,11 @@
         </svg>
       </button>
 
-      <p class="serif text-[0.7rem] font-medium uppercase tracking-[0.3em] text-emerald-400">BHOOMI</p>
+      <p class="serif text-[0.7rem] font-medium uppercase tracking-[0.3em] text-emerald-400">BH<span class="brand-infinity" aria-label="infinity">∞</span>MI</p>
       <h2 id="login-title" class="serif mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
         Sign in to your farm
       </h2>
-      <p class="mt-1.5 text-sm text-white/45">Weather, soil and market data for your district.</p>
+      <p class="mt-1.5 text-sm text-white/45">Weather, soil and climate-risk insights for your district.</p>
 
       <div id="form-error" role="alert" aria-live="polite"
            class="mt-5 hidden items-start gap-2.5 rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-3 text-sm text-red-300">
