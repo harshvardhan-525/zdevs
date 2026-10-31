@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en" class="h-full bg-[#05080a]">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#05080a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>BHOOMI — Climate Intelligence for Every Farm</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <style>
+    :root { --ink:#080f0a; --leaf:#34d399; --forest:#123d2b; --ochre:#c58a52; --cell:56px; }
+    @media (max-width: 640px) { :root { --cell: 40px; } }
+    html { -webkit-text-size-adjust: 100%; }
+    body { font-family: "Manrope", ui-sans-serif, system-ui, sans-serif; }
+    .serif, h1, h2, h3 { font-family: "Fraunces", Georgia, serif; }
+
+    /* ---- Cinematic overlays for readability ---- */
+    .backdrop {
+      background:
+        radial-gradient(120% 90% at 50% -10%, rgba(52, 211, 153, .15) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(5,8,10,0.3) 0%, rgba(5,8,10,0.6) 40%, rgba(5,8,10,0.95) 100%);
+    }
+    .vignette {
+      background:
+        radial-gradient(115% 95% at 50% 22%, transparent 30%, rgba(0,0,0,.65) 85%, rgba(0,0,0,.95) 100%),
+        linear-gradient(180deg, rgba(0,0,0,.5) 0%, transparent 25%, transparent 60%, rgba(0,0,0,.85) 100%);
+    }
+    .grain {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: .06;
+    }
+
+    /* ---- Rectangular grid (static lines; the hover glow is drawn on the canvas) ---- */
+    .grid-lines {
+      background-image:
+        linear-gradient(to right,  rgba(110, 231, 183, .08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(110, 231, 183, .08) 1px, transparent 1px);
+      background-size: var(--cell) var(--cell);
+      background-position: 0 0;
+    }
+
+    .fade-up { animation: fadeUp .8s cubic-bezier(.22,.61,.36,1) both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+    /* ---- Wordmark hover: emerald light sweeps across the letters, spacing opens, underline draws in ---- */
+    .wordmark { position: relative; }
+    .wordmark-text {
+      display: inline-block;
+      background: linear-gradient(100deg, #fff 0%, #fff 36%, #6ee7b7 47%, #d1fae5 53%, #fff 64%, #fff 100%);
+      background-size: 260% 100%;
+      background-position: 100% 0;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      transition: letter-spacing .6s cubic-bezier(.22,.61,.36,1), filter .5s ease;
+    }
+    .wordmark::after {
+      content: "";
+      position: absolute;
+      left: 1rem; right: 1rem; bottom: .2rem;
+      height: 2px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #34d399, #a7f3d0 60%, transparent);
+      transform: scaleX(0);
+      transform-origin: left center;
+      transition: transform .6s cubic-bezier(.22,.61,.36,1);
+    }
+    .wordmark:hover .wordmark-text,
+    .wordmark:focus-visible .wordmark-text {
+      letter-spacing: .3em;
+      filter: drop-shadow(0 0 16px rgba(52, 211, 153, .55));
+      animation: sheen 1.1s cubic-bezier(.4,0,.2,1) forwards;
+    }
+    .wordmark:hover::after,
+    .wordmark:focus-visible::after { transform: scaleX(1); }
+    @keyframes sheen { to { background-position: 0% 0; } }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #fff;
+      -webkit-box-shadow: 0 0 0 1000px #0d1614 inset;
+      caret-color: #fff;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+    /* BHOOMI infinity wordmark */
+    .wordmark-infinity,
+    .brand-infinity {
+      display: inline-block;
+      color: #34d399;
+      -webkit-text-fill-color: #34d399;
+      background: none;
+      -webkit-background-clip: initial;
+      background-clip: initial;
+      font-family: "Manrope", sans-serif;
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1;
+      vertical-align: -0.04em;
+      transition: color .3s ease, filter .3s ease;
+    }
+    .wordmark-infinity { font-size: 1.5em; margin: 0 .025em; vertical-align: -0.10em; }
+    .brand-infinity { font-size: 1.3em; margin: 0 .025em; vertical-align: -0.08em; }
+    .wordmark:hover .wordmark-infinity,
+    .wordmark:focus-visible .wordmark-infinity {
+      color: #a7f3d0;
+      -webkit-text-fill-color: #a7f3d0;
+      filter: drop-shadow(0 0 10px rgba(52, 211, 153, .6));
+    }
+    
+  </style>
+</head>
+
+<!-- NOTE: no bg-* on <body>. The html element already has the dark colour, and a solid
+     body background would paint OVER the fixed -z-10 image layer (that was the black screen). -->
+<body class="min-h-full text-white antialiased selection:bg-emerald-400/30">
+
+  <!-- ================= BACKDROP ================= -->
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#05080a]" aria-hidden="true">
+
+    <!-- 1. Background image -->
+    <img id="hero-img" src="./hero.jpg"
+         class="absolute inset-0 h-full w-full scale-105 object-cover opacity-75 blur-[3px]"
+         alt="" />
+
+    <!-- 2. Dark overlays so text stays readable -->
+    <div class="absolute inset-0 backdrop"></div>
+
+    <!-- 3. Rectangular grid + interactive hover glow -->
+    <div class="absolute inset-0 grid-lines"></div>
+    <canvas id="grid-fx" class="absolute inset-0 h-full w-full"></canvas>
+
+    <!-- 4. Vignette and grain on top -->
+    <div class="absolute inset-0 vignette"></div>
+    <div class="absolute inset-0 grain"></div>
+  </div>
+
+  <div class="flex min-h-dvh flex-col">
+
+    <!-- ================= WORDMARK ================= -->
+    <header class="px-6 pt-6 sm:px-10 sm:pt-8 lg:px-14 lg:pt-10">
+      <a href="/" aria-label="BHOOMI home"
+         class="wordmark group relative inline-flex items-center rounded-xl px-4 py-2 pb-3 -ml-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#05080a]">
+        <span class="wordmark-text serif text-[1.6rem] font-semibold uppercase leading-none tracking-[0.22em] sm:text-[1.9rem] lg:text-[2.1rem]">
+          BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI
+        </span>
+      </a>
+    </header>
+
+    <!-- ================= HERO ================= -->
+    <main class="flex flex-1 items-center justify-center px-6 py-14 sm:px-8 sm:py-16">
+      <div class="w-full max-w-3xl text-center">
+
+        <!-- Headline with hover effect -->
+        <h1 class="serif fade-up text-[clamp(1.85rem,6.4vw,4.4rem)] font-semibold leading-[1.06] tracking-[-0.025em] text-white [text-shadow:0_2px_40px_rgba(0,0,0,.6)] transition-all duration-500 hover:text-emerald-300 hover:scale-[1.01] hover:drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]">
+          <span class="block">Smart farming.</span>
+          <span class="block">Better harvests.</span>
+        </h1>
+
+        <!-- Subhead -->
+        <p class="fade-up mt-5 text-[0.98rem] font-light tracking-wide text-emerald-50/75 sm:text-lg transition-colors duration-300 hover:text-white" style="animation-delay:.08s">
+          Climate intelligence for every field.
+        </p>
+
+        <!-- Login affordance -->
+        <div class="fade-up mt-10 flex items-center justify-center gap-4 sm:mt-12" style="animation-delay:.16s">
+          <span class="h-px w-full max-w-[80px] bg-gradient-to-r from-transparent to-white/25 sm:max-w-[140px]"></span>
+          <button type="button" data-open-login
+                  class="group inline-flex items-center gap-2 rounded-md px-2 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-emerald-300 transition-all duration-300 hover:text-emerald-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#05080a] sm:text-[0.78rem]">
+            Login here
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 class="size-3.5 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">
+              <path d="M5 12h13M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <span class="h-px w-full max-w-[80px] bg-gradient-to-l from-transparent to-white/25 sm:max-w-[140px]"></span>
+        </div>
+
+        <!-- Description -->
+        <div class="fade-up mx-auto mt-9 max-w-2xl space-y-4 text-[0.94rem] leading-relaxed text-white/60 sm:text-[1rem] transition-colors duration-300 hover:text-white/90" style="animation-delay:.24s">
+          <p>
+            Bring local weather, soil conditions and satellite-based insights together
+            to understand the climate risks around your farm.
+          </p>
+          <p>
+            Spot emerging risks earlier and make more informed decisions for every growing season.
+          </p>
+        </div>
+
+        <!-- CTAs -->
+        <div class="fade-up mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4" style="animation-delay:.32s">
+          <button type="button" data-open-login
+                  class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-7 py-3.5 text-[0.95rem] font-semibold text-[#04120c] shadow-[0_10px_40px_-12px_rgba(52,211,153,.8)] transition-all duration-300 hover:bg-emerald-400 hover:scale-105 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05080a] active:scale-[.99] sm:w-auto">
+            <span aria-hidden="true">🌱</span> Get Started
+          </button>
+          <a href="/features"
+             class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/[0.04] px-7 py-3.5 text-[0.95rem] font-semibold text-white/90 backdrop-blur-sm transition-all duration-300 hover:border-white/40 hover:bg-white/[0.15] hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05080a] sm:w-auto">
+            Explore Features
+          </a>
+        </div>
+
+        <!-- Tagline -->
+        <p class="fade-up mt-12 text-[0.8rem] italic tracking-wide text-white/35 sm:text-sm transition-colors duration-300 hover:text-emerald-400/80" style="animation-delay:.4s">
+          Understand your land. Anticipate change. Grow with confidence.
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= LOGIN OVERLAY ================= -->
+  <div id="login-modal"
+       class="fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-200 sm:p-6"
+       role="dialog" aria-modal="true" aria-labelledby="login-title">
+    <div data-close-login class="absolute inset-0 bg-black/75 backdrop-blur-md"></div>
+
+    <div class="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0a1210]/95 p-6 shadow-2xl shadow-black/60 sm:p-8">
+      <button type="button" data-close-login aria-label="Close sign in"
+              class="absolute right-4 top-4 grid size-9 place-items-center rounded-lg text-white/50 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <p class="serif text-[0.7rem] font-medium uppercase tracking-[0.3em] text-emerald-400">BH<span class="brand-infinity" aria-label="infinity">∞</span>MI</p>
+      <h2 id="login-title" class="serif mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
+        Sign in to your farm
+      </h2>
+      <p class="mt-1.5 text-sm text-white/45">Weather, soil and climate-risk insights for your district.</p>
+
+      <div id="form-error" role="alert" aria-live="polite"
+           class="mt-5 hidden items-start gap-2.5 rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-3 text-sm text-red-300">
+        <svg viewBox="0 0 20 20" fill="currentColor" class="mt-0.5 size-4 shrink-0" aria-hidden="true">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5ZM9 14a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z" clip-rule="evenodd"/>
+        </svg>
+        <span id="form-error-text"></span>
+      </div>
+
+      <form id="signin-form" class="mt-6 space-y-4" novalidate>
+        <div>
+          <label for="email" class="mb-1.5 block text-[0.8rem] font-medium uppercase tracking-wider text-white/50 transition-colors hover:text-white/80">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email"
+                 enterkeyhint="next" placeholder="you@example.com" required aria-describedby="email-error"
+                 class="block w-full rounded-xl border border-white/12 bg-white/[0.04] px-4 py-3 text-[15px] text-white placeholder:text-white/25 transition-all duration-300 hover:border-white/30 hover:bg-white/[0.06] focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-400/15 aria-[invalid=true]:border-red-400/60 aria-[invalid=true]:focus:ring-red-400/15" />
+          <p id="email-error" class="mt-1.5 hidden text-xs text-red-400"></p>
+        </div>
+
+        <div>
+          <div class="mb-1.5 flex items-baseline justify-between">
+            <label for="password" class="block text-[0.8rem] font-medium uppercase tracking-wider text-white/50 transition-colors hover:text-white/80">Password</label>
+            <a href="/forgot-password" class="rounded text-xs font-medium text-emerald-400 underline-offset-2 transition-all hover:text-emerald-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+              Forgot?
+            </a>
+          </div>
+          <div class="relative">
+            <input id="password" name="password" type="password" autocomplete="current-password"
+                   enterkeyhint="go" placeholder="••••••••" required aria-describedby="password-error caps-warning"
+                   class="block w-full rounded-xl border border-white/12 bg-white/[0.04] px-4 py-3 pr-12 text-[15px] text-white placeholder:text-white/25 transition-all duration-300 hover:border-white/30 hover:bg-white/[0.06] focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-400/15 aria-[invalid=true]:border-red-400/60 aria-[invalid=true]:focus:ring-red-400/15" />
+            <button type="button" id="toggle-password" aria-label="Show password" aria-pressed="false"
+                    class="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-white/35 transition hover:text-white/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400">
+              <svg id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-5" aria-hidden="true">
+                <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg id="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="hidden size-5" aria-hidden="true">
+                <path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.24 4.24M9.9 5.8A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17.5 17.5 0 0 1-3.3 4.2M6.3 7.6A17.4 17.4 0 0 0 2.5 12S6 18.5 12 18.5c1 0 1.9-.17 2.7-.46" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <p id="password-error" class="mt-1.5 hidden text-xs text-red-400"></p>
+          <p id="caps-warning" class="mt-1.5 hidden text-xs text-amber-400">Caps Lock is on.</p>
+        </div>
+
+        <label for="remember" class="group flex cursor-pointer items-center gap-2.5 pt-1 text-sm text-white/55 transition-colors hover:text-white/80">
+          <input id="remember" name="remember" type="checkbox"
+                 class="size-4 rounded border-white/25 bg-white/5 text-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0" />
+          <span>Keep me signed in</span>
+        </label>
+
+        <button type="submit" id="submit-btn"
+                class="relative flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3.5 text-[15px] font-semibold text-[#04120c] shadow-[0_10px_36px_-14px_rgba(52,211,153,.9)] transition-all duration-300 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1210] active:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70">
+          <svg id="spinner" viewBox="0 0 24 24" fill="none" class="hidden size-4 animate-spin" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity=".25"/>
+            <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <span id="submit-label">Sign in</span>
+        </button>
+      </form>
+
+      <p class="mt-6 text-center text-sm text-white/40">
+        New to BHOOMI?
+        <a href="/register" class="rounded font-medium text-emerald-400 underline-offset-2 transition-all hover:text-emerald-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+          Create an account
+        </a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    /* ------------------------------------------------------------------
+       Background image check (tells you in the console if hero.jpg is missing)
+       ------------------------------------------------------------------ */
+    document.getElementById('hero-img').addEventListener('error', (e) => {
+      console.error('hero.jpg failed to load from:', e.target.src,
+        '— it must sit in the same folder as login.html (check spelling and case).');
+    });
+
+    /* ------------------------------------------------------------------
+       Interactive grid: cells under the cursor light up, then fade out
+       ------------------------------------------------------------------ */
+    (() => {
+      const canvas = document.getElementById('grid-fx');
+      const ctx = canvas.getContext('2d');
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const lit = new Map();                  // "col,row" -> { c, r, a }
+      let cell = 56, dpr = 1, raf = 0, mx = -1, my = -1;
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width  = Math.round(window.innerWidth  * dpr);
+        canvas.height = Math.round(window.innerHeight * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cell = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell')) || 56;
+      }
+
+      function light(c, r, a) {
+        const k = c + ',' + r;
+        const e = lit.get(k);
+        if (e) e.a = Math.max(e.a, a);
+        else lit.set(k, { c, r, a });
+      }
+
+      function onMove(ev) {
+        mx = ev.clientX; my = ev.clientY;
+        const c = Math.floor(mx / cell), r = Math.floor(my / cell);
+        light(c, r, 1);                                           // the cell under the pointer
+        for (let dx = -1; dx <= 1; dx++)                          // soft halo on the neighbours
+          for (let dy = -1; dy <= 1; dy++)
+            if (dx || dy) light(c + dx, r + dy, 0.3);
+        if (!raf) raf = requestAnimationFrame(draw);
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+        let peak = 0;
+
+        for (const [k, e] of lit) {
+          peak = Math.max(peak, e.a);
+          const x = e.c * cell, y = e.r * cell;
+          ctx.fillStyle = `rgba(52, 211, 153, ${e.a * 0.16})`;
+          ctx.fillRect(x + 1, y + 1, cell - 1, cell - 1);
+          ctx.strokeStyle = `rgba(110, 231, 183, ${e.a * 0.6})`;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y + 0.5, cell, cell);
+          e.a -= 0.022;                                           // ~0.7s fade at 60fps
+          if (e.a <= 0) lit.delete(k);
+        }
+
+        // soft light that follows the pointer and fades with the cells
+        if (mx >= 0 && peak > 0) {
+          const g = ctx.createRadialGradient(mx, my, 0, mx, my, 240);
+          g.addColorStop(0, `rgba(52, 211, 153, ${0.14 * peak})`);
+          g.addColorStop(1, 'rgba(52, 211, 153, 0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(mx - 240, my - 240, 480, 480);
+        }
+
+        raf = lit.size ? requestAnimationFrame(draw) : 0;
+      }
+
+      resize();
+      window.addEventListener('resize', resize);
+      if (!reduceMotion) {
+        window.addEventListener('pointermove', onMove, { passive: true });
+        document.addEventListener('pointerleave', () => { mx = -1; my = -1; });
+      }
+    })();
+
+    /* ------------------------------------------------------------------
+       Modal open / close + focus management
+       ------------------------------------------------------------------ */
+    const modal      = document.getElementById('login-modal');
+    const openers    = document.querySelectorAll('[data-open-login]');
+    const closers    = document.querySelectorAll('[data-close-login]');
+    const emailEl    = document.getElementById('email');
+    let lastFocused  = null;
+
+    function openModal() {
+      lastFocused = document.activeElement;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.documentElement.classList.add('overflow-hidden');
+      requestAnimationFrame(() => modal.classList.remove('opacity-0'));
+      setTimeout(() => emailEl.focus(), 60);
+    }
+
+    function closeModal() {
+      modal.classList.add('opacity-0');
+      document.documentElement.classList.remove('overflow-hidden');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        lastFocused?.focus?.();
+      }, 180);
+    }
+
+    openers.forEach((b) => b.addEventListener('click', openModal));
+    closers.forEach((b) => b.addEventListener('click', closeModal));
+
+    document.addEventListener('keydown', (e) => {
+      if (modal.classList.contains('hidden')) return;
+      if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+      if (e.key === 'Tab') {
+        const f = modal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled])');
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+
+    /* ------------------------------------------------------------------
+       Password reveal + Caps Lock
+       ------------------------------------------------------------------ */
+    const passEl     = document.getElementById('password');
+    const toggleBtn  = document.getElementById('toggle-password');
+    const iconEye    = document.getElementById('icon-eye');
+    const iconEyeOff = document.getElementById('icon-eye-off');
+    const capsWarn   = document.getElementById('caps-warning');
+
+    toggleBtn.addEventListener('click', () => {
+      const revealed = passEl.type === 'text';
+      passEl.type = revealed ? 'password' : 'text';
+      toggleBtn.setAttribute('aria-pressed', String(!revealed));
+      toggleBtn.setAttribute('aria-label', revealed ? 'Show password' : 'Hide password');
+      iconEye.classList.toggle('hidden', !revealed);
+      iconEyeOff.classList.toggle('hidden', revealed);
+      passEl.focus({ preventScroll: true });
+    });
+
+    passEl.addEventListener('keyup', (e) => {
+      if (typeof e.getModifierState !== 'function') return;
+      capsWarn.classList.toggle('hidden', !e.getModifierState('CapsLock'));
+    });
+    passEl.addEventListener('blur', () => capsWarn.classList.add('hidden'));
+
+    /* ------------------------------------------------------------------
+       Validation
+       ------------------------------------------------------------------ */
+    const form      = document.getElementById('signin-form');
+    const emailErr  = document.getElementById('email-error');
+    const passErr   = document.getElementById('password-error');
+    const errorBox  = document.getElementById('form-error');
+    const errorText = document.getElementById('form-error-text');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitLbl = document.getElementById('submit-label');
+    const spinner   = document.getElementById('spinner');
+
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    function setFieldError(input, el, message) {
+      if (message) {
+        el.textContent = message;
+        el.classList.remove('hidden');
+        input.setAttribute('aria-invalid', 'true');
+      } else {
+        el.textContent = '';
+        el.classList.add('hidden');
+        input.removeAttribute('aria-invalid');
+      }
+    }
+    function clearFormError() {
+      errorBox.classList.add('hidden');
+      errorBox.classList.remove('flex');
+      errorText.textContent = '';
+    }
+    function showFormError(msg) {
+      errorText.textContent = msg;
+      errorBox.classList.remove('hidden');
+      errorBox.classList.add('flex');
+    }
+
+    function validate() {
+      let ok = true;
+      const email = emailEl.value.trim();
+      if (!email)                                  { setFieldError(emailEl, emailErr, 'Enter your email address.'); ok = false; }
+      else if (!EMAIL_RE.test(email))              { setFieldError(emailEl, emailErr, 'That does not look like a valid email.'); ok = false; }
+      else                                         { setFieldError(emailEl, emailErr, ''); }
+
+      if (!passEl.value)                           { setFieldError(passEl, passErr, 'Enter your password.'); ok = false; }
+      else                                         { setFieldError(passEl, passErr, ''); }
+      return ok;
+    }
+
+    [emailEl, passEl].forEach((el) =>
+      el.addEventListener('input', () => {
+        if (el.getAttribute('aria-invalid') === 'true') setFieldError(el, el === emailEl ? emailErr : passErr, '');
+        clearFormError();
+      })
+    );
+
+    /* ------------------------------------------------------------------
+       Submit — fails LOUDLY until the backend exists
+       ------------------------------------------------------------------ */
+    function setLoading(loading) {
+      submitBtn.disabled = loading;
+      submitLbl.textContent = loading ? 'Signing in…' : 'Sign in';
+      spinner.classList.toggle('hidden', !loading);
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearFormError();
+      if (!validate()) {
+        (emailEl.getAttribute('aria-invalid') === 'true' ? emailEl : passEl).focus();
+        return;
+      }
+
+      setLoading(true);
+      try {
+        await signIn({
+          email: emailEl.value.trim(),
+          password: passEl.value,
+          remember: document.getElementById('remember').checked,
+        });
+        window.location.assign('/dashboard');
+      } catch (err) {
+        showFormError(err?.message || 'Could not sign you in. Please try again.');
+        passEl.value = '';
+        passEl.focus();
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    async function signIn({ email, password, remember }) {
+      throw new Error('Auth endpoint not connected — wire POST /api/auth/login inside signIn().');
+    }
+  </script>
+</body>
+</html>

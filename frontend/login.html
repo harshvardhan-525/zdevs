@@ -13,6 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet">
+
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
   <style>
@@ -212,7 +213,7 @@
       <h2 id="login-title" class="serif mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
         Sign in to your farm
       </h2>
-      <p class="mt-1.5 text-sm text-white/45">Weather, soil and market data for your district.</p>
+      <p id="login-sub" class="mt-1.5 text-sm text-white/45">Weather, soil and market data for your district.</p>
 
       <div id="form-error" role="alert" aria-live="polite"
            class="mt-5 hidden items-start gap-2.5 rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-3 text-sm text-red-300">
@@ -222,7 +223,22 @@
         <span id="form-error-text"></span>
       </div>
 
-      <form id="signin-form" class="mt-6 space-y-4" novalidate>
+      <button type="button" id="google-btn"
+              class="mt-6 flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3.5 text-[15px] font-semibold text-[#1f1f1f] transition-all duration-300 hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1210] disabled:cursor-not-allowed disabled:opacity-70">
+        <svg viewBox="0 0 48 48" class="size-5" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="my-5 flex items-center gap-3 text-[0.7rem] font-medium uppercase tracking-[0.25em] text-white/35" aria-hidden="true">
+        <span class="h-px flex-1 bg-white/10"></span>or<span class="h-px flex-1 bg-white/10"></span>
+      </div>
+
+      <form id="signin-form" class="space-y-4" novalidate>
         <div>
           <label for="email" class="mb-1.5 block text-[0.8rem] font-medium uppercase tracking-wider text-white/50 transition-colors hover:text-white/80">Email</label>
           <input id="email" name="email" type="email" autocomplete="email" inputmode="email"
@@ -234,7 +250,7 @@
         <div>
           <div class="mb-1.5 flex items-baseline justify-between">
             <label for="password" class="block text-[0.8rem] font-medium uppercase tracking-wider text-white/50 transition-colors hover:text-white/80">Password</label>
-            <a href="/forgot-password" class="rounded text-xs font-medium text-emerald-400 underline-offset-2 transition-all hover:text-emerald-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+            <a id="forgot-link" href="/forgot-password" class="rounded text-xs font-medium text-emerald-400 underline-offset-2 transition-all hover:text-emerald-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
               Forgot?
             </a>
           </div>
@@ -257,11 +273,6 @@
           <p id="caps-warning" class="mt-1.5 hidden text-xs text-amber-400">Caps Lock is on.</p>
         </div>
 
-        <label for="remember" class="group flex cursor-pointer items-center gap-2.5 pt-1 text-sm text-white/55 transition-colors hover:text-white/80">
-          <input id="remember" name="remember" type="checkbox"
-                 class="size-4 rounded border-white/25 bg-white/5 text-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0" />
-          <span>Keep me signed in</span>
-        </label>
 
         <button type="submit" id="submit-btn"
                 class="relative flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3.5 text-[15px] font-semibold text-[#04120c] shadow-[0_10px_36px_-14px_rgba(52,211,153,.9)] transition-all duration-300 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1210] active:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70">
@@ -274,13 +285,17 @@
       </form>
 
       <p class="mt-6 text-center text-sm text-white/40">
-        New to BHOOMI?
-        <a href="/register" class="rounded font-medium text-emerald-400 underline-offset-2 transition-all hover:text-emerald-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+        <span id="mode-prompt">New to BHOOMI?</span>
+        <button type="button" id="mode-toggle" class="rounded font-medium text-emerald-400 underline-offset-2 transition-all hover:text-emerald-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
           Create an account
-        </a>
+        </button>
       </p>
     </div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
 
   <script>
     /* ------------------------------------------------------------------
@@ -455,16 +470,20 @@
         input.removeAttribute('aria-invalid');
       }
     }
+    const BOX_CLASS = {
+      error: 'mt-5 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm border-red-500/25 bg-red-500/10 text-red-300',
+      info:  'mt-5 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm border-emerald-400/30 bg-emerald-500/10 text-emerald-200',
+    };
     function clearFormError() {
-      errorBox.classList.add('hidden');
-      errorBox.classList.remove('flex');
+      errorBox.className = 'hidden';
       errorText.textContent = '';
     }
-    function showFormError(msg) {
+    function showBox(kind, msg) {
       errorText.textContent = msg;
-      errorBox.classList.remove('hidden');
-      errorBox.classList.add('flex');
+      errorBox.className = BOX_CLASS[kind];
     }
+    function showFormError(msg) { showBox('error', msg); }
+    function showFormInfo(msg)  { showBox('info', msg); }
 
     function validate() {
       let ok = true;
@@ -474,6 +493,7 @@
       else                                         { setFieldError(emailEl, emailErr, ''); }
 
       if (!passEl.value)                           { setFieldError(passEl, passErr, 'Enter your password.'); ok = false; }
+      else if (mode === 'signup' && passEl.value.length < 8) { setFieldError(passEl, passErr, 'Use at least 8 characters.'); ok = false; }
       else                                         { setFieldError(passEl, passErr, ''); }
       return ok;
     }
@@ -486,12 +506,59 @@
     );
 
     /* ------------------------------------------------------------------
-       Submit — fails LOUDLY until the backend exists
+       Sign in / Create account  (Supabase Auth: email + Google)
        ------------------------------------------------------------------ */
+    const titleEl       = document.getElementById('login-title');
+    const subEl         = document.getElementById('login-sub');
+    const promptEl      = document.getElementById('mode-prompt');
+    const toggleModeBtn = document.getElementById('mode-toggle');
+    const forgotEl      = document.getElementById('forgot-link');
+    const googleBtn     = document.getElementById('google-btn');
+    let mode = 'signin';                                   // 'signin' | 'signup'
+
+    const COPY = {
+      signin: { title: 'Sign in to your farm', sub: 'Weather, soil and market data for your district.',
+                submit: 'Sign in', busy: 'Signing in…', prompt: 'New to BHOOMI?', toggle: 'Create an account', autocomplete: 'current-password' },
+      signup: { title: 'Create your account',  sub: 'Use your email or continue with Google.',
+                submit: 'Create account', busy: 'Creating account…', prompt: 'Already have an account?', toggle: 'Sign in', autocomplete: 'new-password' },
+    };
+
+    function setMode(next) {
+      mode = next;
+      const c = COPY[mode];
+      titleEl.textContent = c.title;
+      subEl.textContent = c.sub;
+      submitLbl.textContent = c.submit;
+      promptEl.textContent = c.prompt;
+      toggleModeBtn.textContent = c.toggle;
+      passEl.setAttribute('autocomplete', c.autocomplete);
+      forgotEl.classList.toggle('hidden', mode === 'signup');
+      setFieldError(emailEl, emailErr, '');
+      setFieldError(passEl, passErr, '');
+      clearFormError();
+    }
+    toggleModeBtn.addEventListener('click', () => setMode(mode === 'signin' ? 'signup' : 'signin'));
+
     function setLoading(loading) {
       submitBtn.disabled = loading;
-      submitLbl.textContent = loading ? 'Signing in…' : 'Sign in';
+      googleBtn.disabled = loading;
+      submitLbl.textContent = loading ? COPY[mode].busy : COPY[mode].submit;
       spinner.classList.toggle('hidden', !loading);
+    }
+
+    function requireClient() {
+      if (!window.sb) throw new Error('Sign-in is not configured yet. Fill in frontend/config.js with your Supabase URL and key.');
+    }
+    function loginUrl() { return window.location.origin + window.location.pathname; }
+    function goToDashboard() { window.location.assign('dashboard.html'); }
+
+    function authMessage(err) {
+      const msg = (err && err.message) || '';
+      if (/invalid login credentials/i.test(msg)) return 'Wrong email or password.';
+      if (/email not confirmed/i.test(msg))       return 'Please confirm your email first. Check your inbox.';
+      if (err && (err.status === 429 || /rate limit/i.test(msg))) return 'Too many attempts. Please wait a minute and try again.';
+      if ((err && err.name === 'AuthRetryableFetchError') || /failed to fetch|network/i.test(msg)) return 'Cannot reach the sign-in service. Check your internet connection.';
+      return msg || 'Could not sign you in. Please try again.';
     }
 
     form.addEventListener('submit', async (event) => {
@@ -503,25 +570,74 @@
       }
 
       setLoading(true);
+      let leaving = false;
       try {
-        await signIn({
-          email: emailEl.value.trim(),
-          password: passEl.value,
-          remember: document.getElementById('remember').checked,
-        });
-        window.location.assign('/dashboard');
+        requireClient();
+        const email = emailEl.value.trim();
+
+        if (mode === 'signin') {
+          const { error } = await window.sb.auth.signInWithPassword({ email, password: passEl.value });
+          if (error) throw error;
+          leaving = true; goToDashboard();
+        } else {
+          const { data, error } = await window.sb.auth.signUp({
+            email, password: passEl.value, options: { emailRedirectTo: loginUrl() },
+          });
+          if (error) throw error;
+          if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+            throw new Error('That email is already registered. Sign in instead, or continue with Google.');
+          }
+          if (data.session) { leaving = true; goToDashboard(); }       // email confirmation is switched off
+          else {
+            setMode('signin');
+            passEl.value = '';
+            showFormInfo('Account created. Check your inbox to confirm your email, then sign in.');
+          }
+        }
       } catch (err) {
-        showFormError(err?.message || 'Could not sign you in. Please try again.');
+        showFormError(authMessage(err));
         passEl.value = '';
         passEl.focus();
       } finally {
-        setLoading(false);
+        if (!leaving) setLoading(false);
       }
     });
 
-    async function signIn({ email, password, remember }) {
-      throw new Error('Auth endpoint not connected — wire POST /api/auth/login inside signIn().');
-    }
+    googleBtn.addEventListener('click', async () => {
+      clearFormError();
+      try {
+        requireClient();
+        setLoading(true);
+        const { error } = await window.sb.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: loginUrl(), queryParams: { prompt: 'select_account' } },
+        });
+        if (error) throw error;                 // on success the browser leaves for Google
+      } catch (err) {
+        showFormError(authMessage(err));
+        setLoading(false);
+      }
+    });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) setLoading(false); });   // back button after Google
+
+    /* ------------------------------------------------------------------
+       On load: show a returned OAuth error, or skip login if already signed in
+       (getSession() also finishes the Google / email-confirmation redirect)
+       ------------------------------------------------------------------ */
+    (async () => {
+      const hash  = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const query = new URLSearchParams(window.location.search);
+      const problem = hash.get('error_description') || query.get('error_description');
+      if (problem) {
+        openModal();
+        showFormError(problem);
+        history.replaceState(null, '', window.location.pathname);
+        return;
+      }
+      if (!window.sb) return;
+      const { data: { session } } = await window.sb.auth.getSession();
+      if (session) window.location.replace('dashboard.html');
+    })();
   </script>
 </body>
 </html>
