@@ -1,3 +1,5 @@
-.evn
-.evn.*
-!.evn.example
+.env
+backend/.env
+frontend/.env
+.venv
+__pycache__/
