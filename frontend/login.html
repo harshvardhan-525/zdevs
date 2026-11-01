@@ -10,18 +10,23 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet"> -->
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet"> -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
   <style>
     :root { --ink:#05080a; --leaf:#34d399; --cell: 56px; }
     @media (max-width: 640px) { :root { --cell: 40px; } }
-    html { -webkit-text-size-adjust: 100%; }
+   html { -webkit-text-size-adjust: 100%; font-size: 112.5%; }
+    @media (min-width: 1920px) { html { font-size: 125%; } }
     body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    .serif { font-family: "IBM Plex Serif", ui-serif, Georgia, serif; }
+    .serif { font-family: "Fraunces", Georgia, serif; }
 
     /* ---- Cinematic overlays for readability ---- */
     .backdrop {
@@ -53,6 +58,13 @@
 
     /* ---- Wordmark hover: emerald light sweeps across the letters, spacing opens, underline draws in ---- */
     .wordmark { position: relative; }
+    .wordmark-infinity {
+  display: inline-block; margin: 0 .015em;
+  color: #34d399; -webkit-text-fill-color: #34d399;
+  background: none; -webkit-background-clip: initial; background-clip: initial;
+  font-family: "Manrope", sans-serif; font-size: 1.12em; font-weight: 600;
+  letter-spacing: 0; line-height: 1; vertical-align: -.045em;
+}
     .wordmark-text {
       display: inline-block;
       background: linear-gradient(100deg, #fff 0%, #fff 36%, #6ee7b7 47%, #d1fae5 53%, #fff 64%, #fff 100%);
@@ -130,7 +142,7 @@
       <a href="/" aria-label="BHOOMI home"
          class="wordmark group relative inline-flex items-center rounded-xl px-4 py-2 pb-3 -ml-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#05080a]">
         <span class="wordmark-text serif text-[1.6rem] font-semibold uppercase leading-none tracking-[0.22em] sm:text-[1.9rem] lg:text-[2.1rem]">
-          BHOOMI
+          BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI
         </span>
       </a>
     </header>
@@ -176,16 +188,13 @@
         </div>
 
         <!-- CTAs -->
-        <div class="fade-up mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4" style="animation-delay:.32s">
-          <button type="button" data-open-login
-                  class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-7 py-3.5 text-[0.95rem] font-semibold text-[#04120c] shadow-[0_10px_40px_-12px_rgba(52,211,153,.8)] transition-all duration-300 hover:bg-emerald-400 hover:scale-105 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05080a] active:scale-[.99] sm:w-auto">
-            <span aria-hidden="true">🌱</span> Get Started
-          </button>
-          <a href="/features"
-             class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/[0.04] px-7 py-3.5 text-[0.95rem] font-semibold text-white/90 backdrop-blur-sm transition-all duration-300 hover:border-white/40 hover:bg-white/[0.15] hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05080a] sm:w-auto">
-            Explore Features
-          </a>
-        </div>
+        <!-- CTA -->
+<div class="fade-up mt-10 flex justify-center" style="animation-delay:.32s">
+  <button type="button" data-open-login
+          class="inline-flex w-full max-w-md items-center justify-center gap-2 rounded-lg bg-emerald-500 px-7 py-3.5 text-[0.95rem] font-semibold text-[#04120c] shadow-[0_10px_40px_-12px_rgba(52,211,153,.8)] transition-all duration-300 hover:bg-emerald-400 hover:scale-105 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05080a] active:scale-[.99]">
+    <span aria-hidden="true">🌱</span> Get Started
+  </button>
+</div>
 
         <!-- Tagline -->
         <p class="fade-up mt-12 text-[0.8rem] italic tracking-wide text-white/35 sm:text-sm transition-colors duration-300 hover:text-emerald-400/80" style="animation-delay:.4s">

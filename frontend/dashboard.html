@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#05080a" />
   <meta name="google" content="notranslate" />
-  <title>BHOOMI · Dashboard</title>
+  <title>BH∞MI · Dashboard</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-
+  <script src="bhoomi-cache.js"></script>
   <style>
     :root { --ink:#05080a; --leaf:#34d399; }
     html { -webkit-text-size-adjust: 100%; }
@@ -44,8 +47,10 @@
     .text-white\/70 { color: rgba(255,255,255,.90); }
     .text-white\/80 { color: rgba(255,255,255,.94); }
     .border-white\/10 { border-color: rgba(255,255,255,.18); }
-    body { font-family: "Open Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-weight: 500; }
-    .serif { font-family: "IBM Plex Serif", ui-serif, Georgia, serif; }
+
+    /* ---- Fonts: Manrope for text, Fraunces for headings and the logo ---- */
+    body { font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-weight: 500; }
+    .serif { font-family: "Fraunces", Georgia, serif; }
 
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -77,8 +82,23 @@
     #navbar { transition: background-color 0.4s ease, backdrop-filter 0.4s ease; }
     #navbar.scrolled { background-color: rgba(5, 8, 10, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-    /* ---- Wordmark hover (same sheen + underline as the login page) ---- */
+    /* ---- Wordmark: BH∞MI (green infinity) with the sheen + underline hover ---- */
     .wordmark { position: relative; }
+    .wordmark-infinity {
+      display: inline-block;
+      margin: 0 .015em;
+      color: #34d399;
+      -webkit-text-fill-color: #34d399;
+      background: none;
+      -webkit-background-clip: initial;
+      background-clip: initial;
+      font-family: "Manrope", sans-serif;
+      font-size: 1.12em;
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1;
+      vertical-align: -.045em;
+    }
     .wordmark-text {
       display: inline-block;
       background: linear-gradient(100deg, #fff 0%, #fff 36%, #6ee7b7 47%, #d1fae5 53%, #fff 64%, #fff 100%);
@@ -123,13 +143,17 @@
       z-index: 10;
     }
 
+    /* ---- Leaflet Dark Mode Overrides ---- */
+    .leaflet-container { background: #05080a; font-family: inherit; }
+    .leaflet-bar a { background-color: #0a1210 !important; color: white !important; border-color: rgba(255,255,255,0.1) !important; }
+    .leaflet-bar a:hover { background-color: #1a2b26 !important; }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     }
   </style>
 </head>
 
-<!-- NOTE: no bg-* on <body>, otherwise it would paint over the fixed background layer. -->
 <body class="min-h-full text-white antialiased selection:bg-emerald-400/30">
 
   <!-- ================= PAGE BACKGROUND ================= -->
@@ -144,22 +168,23 @@
   <canvas id="fx-click" class="pointer-events-none fixed inset-0 z-[60] h-full w-full" aria-hidden="true"></canvas>
 
   <!-- ================= NAVBAR ================= -->
-  <nav id="navbar" class="fixed top-0 z-50 w-full px-6 py-4 sm:px-10 lg:px-14 flex items-center justify-between">
+  <nav id="navbar" class="fixed top-0 z-40 w-full px-6 py-4 sm:px-10 lg:px-14 flex items-center justify-between">
     <div class="flex items-center gap-10">
       <!-- Wordmark -->
       <a href="dashboard.html" aria-label="BHOOMI home"
          class="wordmark group relative inline-flex items-center rounded-xl px-3 py-1.5 pb-2.5 -ml-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70">
         <span class="wordmark-text serif text-[1.3rem] font-semibold uppercase leading-none tracking-[0.22em] sm:text-[1.6rem]">
-          BHOOMI
+          BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI
         </span>
       </a>
 
       <!-- Desktop Links -->
       <div class="hidden lg:flex items-center gap-7 text-sm font-semibold text-white/70">
-        <a href="dashboard.html" class="text-white transition-colors">Overview</a>
-        <a href="#weather" class="hover:text-white transition-colors">Weather</a>
-        <a href="#satellite" class="hover:text-white transition-colors">Satellite</a>
-        <a href="#risk" class="hover:text-white transition-colors">Risk</a>
+        <!-- <a href="overview.html" class="text-white transition-colors">Overview</a> -->
+         <a href="dashboard.html">Dashboard</a>
+        <a href="weather.html" class="hover:text-white transition-colors">Weather</a>
+        <a href="satellite.html" class="hover:text-white transition-colors">Satellite</a>
+        <a href="risk.html" class="hover:text-white transition-colors">Risk</a>
       </div>
     </div>
 
@@ -187,7 +212,7 @@
   </nav>
 
   <!-- ================= HERO / OVERVIEW ================= -->
-  <header id="overview" class="relative w-full h-[85vh] min-h-[600px] flex items-center">
+  <!-- <header id="overview" class="relative w-full h-[85vh] min-h-[600px] flex items-center">
     <div class="px-6 sm:px-10 lg:px-14 w-full max-w-4xl mt-16">
       <p class="text-emerald-400 font-semibold tracking-widest uppercase text-xs mb-3 fade-up">Farm Intelligence</p>
 
@@ -197,23 +222,45 @@
 
       <p class="mt-5 text-lg sm:text-xl text-white/80 max-w-2xl leading-relaxed [text-shadow:0_2px_10px_rgba(0,0,0,0.8)]">
         Monitor local weather, explore crop conditions, and understand environmental risks affecting your agricultural region.
+      </p> -->
+
+
+
+
+      <!-- old hero:) -->
+  <header id="top" class="relative flex h-[78vh] min-h-[560px] w-full items-center">
+    <div class="mt-16 w-full max-w-4xl px-6 sm:px-10 lg:px-14">
+      <p class="eyebrow fade-up mb-3">Farm Intelligence</p>
+      <h1 class="serif fade-up text-4xl font-semibold leading-[1.05] [text-shadow:0_4px_40px_rgba(0,0,0,0.8)] sm:text-5xl lg:text-6xl">
+        Understand your land.<br>
+        <span class="italic text-emerald-300">Plan for what’s ahead.</span>
+      </h1>
+      <p class="fade-up mt-5 max-w-2xl text-lg leading-relaxed text-white/80 [text-shadow:0_2px_10px_rgba(0,0,0,0.8)] sm:text-xl" style="animation-delay:.05s">
+        Local weather, soil and satellite intelligence to help you make informed farming decisions.
       </p>
 
-      <div class="mt-8 flex flex-wrap items-center gap-3 text-sm font-medium bg-black/40 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10 w-fit fade-up" style="animation-delay: 0.1s;">
+      <!-- Dynamic Location Display -->
+
+            <!-- Dynamic Location Display -->
+      <div id="farm" class="mt-8 flex flex-wrap items-center gap-3 text-sm font-medium bg-black/40 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10 w-fit fade-up scroll-mt-28" style="animation-delay: 0.1s;">
         <span class="text-white/50 uppercase text-[10px] tracking-wider">Location:</span>
-        <button class="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 group">
-          Select District
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-3 group-hover:translate-y-0.5 transition-transform"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
-        </button>
+        <span id="display-location" class="text-emerald-400 font-semibold">Not Set</span>
 
         <span class="text-white/30 mx-1">·</span>
 
         <span class="text-white/50 uppercase text-[10px] tracking-wider">Farm:</span>
-        <button class="text-emerald-400 hover:text-emerald-300 transition-colors font-semibold">Add Your Farm</button>
+        <button id="add-farm-btn" class="text-emerald-400 hover:text-emerald-300 transition-colors font-semibold underline underline-offset-4 decoration-emerald-400/30">Add Your Farm</button>
+
+        <span class="text-white/30 mx-1">·</span>
+
+        <span class="text-white/50 uppercase text-[10px] tracking-wider">Crop:</span>
+        <button id="add-crop-btn" class="text-emerald-400 hover:text-emerald-300 transition-colors font-semibold underline underline-offset-4 decoration-emerald-400/30">Select Crop</button>
       </div>
     </div>
   </header>
 
+
+ 
   <!-- ================= DATA ROWS ================= -->
   <main class="relative z-10 space-y-12 pb-24 -mt-16 px-6 sm:px-10 lg:px-14 max-w-[1600px] mx-auto">
 
@@ -248,48 +295,42 @@
       </div>
     </section>
 
-    <!-- ===== Satellite Analysis ===== -->
+    <!-- ===== Satellite & soil snapshot (real data; full analysis lives on satellite.html) ===== -->
     <section id="satellite">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl sm:text-2xl font-bold text-white">Satellite Analysis</h2>
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Satellite &amp; Soil Snapshot</h2>
+          <p class="mt-1 text-sm text-white/60">Point-based readings for <span id="snap-place">your farm</span> · not a farm boundary</p>
+        </div>
+        <span id="sat-snap-status" class="text-xs font-medium text-emerald-400">Add your farm to load</span>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div class="data-card bg-[#0a1210]/80 border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm">
-          <div class="h-32 bg-emerald-900/40 flex items-center justify-center relative overflow-hidden">
-             <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&q=80&w=600')] bg-cover bg-center opacity-60 mix-blend-luminosity"></div>
-             <span class="relative z-10 text-emerald-300 font-semibold tracking-wider text-sm">NDVI INDEX</span>
-          </div>
-          <div class="p-5">
-            <h3 class="font-medium text-white mb-1">Vegetation Health</h3>
-            <p class="text-sm text-white/50 leading-relaxed">Normalized Difference Vegetation Index indicates healthy crop growth in Zone A.</p>
-          </div>
-        </div>
-        <div class="data-card bg-[#0a1210]/80 border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm">
-          <div class="h-32 bg-amber-900/40 flex items-center justify-center relative overflow-hidden">
-             <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?auto=format&fit=crop&q=80&w=600')] bg-cover bg-center opacity-60 mix-blend-luminosity"></div>
-             <span class="relative z-10 text-amber-300 font-semibold tracking-wider text-sm">SOIL MOISTURE</span>
-          </div>
-          <div class="p-5">
-            <h3 class="font-medium text-white mb-1">SoilGrids Data</h3>
-            <p class="text-sm text-white/50 leading-relaxed">Root-zone soil moisture is at 42%, slightly below optimal for this crop stage.</p>
-          </div>
-        </div>
-        <div class="data-card bg-[#0a1210]/80 border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm">
-          <div class="h-32 bg-blue-900/40 flex items-center justify-center relative overflow-hidden">
-             <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1534088568595-a066f410cbda?auto=format&fit=crop&q=80&w=600')] bg-cover bg-center opacity-60 mix-blend-luminosity"></div>
-             <span class="relative z-10 text-blue-300 font-semibold tracking-wider text-sm">CANOPY WATER</span>
-          </div>
-          <div class="p-5">
-            <h3 class="font-medium text-white mb-1">Evapotranspiration</h3>
-            <p class="text-sm text-white/50 leading-relaxed">Crop water usage has increased by 12% over the last 3 days due to higher temps.</p>
-          </div>
-        </div>
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <a href="satellite.html#imagery" class="data-card block rounded-xl border border-white/10 bg-[#0a1210]/80 p-5 backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Latest clear Sentinel-2 pass</p>
+          <p id="snap-sat-date" class="text-3xl font-semibold text-white">—</p>
+          <p id="snap-sat-meta" class="mt-2 text-xs text-white/40">Add your farm location to search the satellite archive.</p>
+        </a>
+        <a href="satellite.html#soil" class="data-card block rounded-xl border border-white/10 bg-[#0a1210]/80 p-5 backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Soil moisture (modelled)</p>
+          <p id="snap-soil" class="text-3xl font-semibold text-white">—</p>
+          <p id="snap-soil-meta" class="mt-2 text-xs text-white/40">Add your farm location to load the model estimate.</p>
+        </a>
+        <a href="satellite.html#vegetation" class="data-card block rounded-xl border border-white/10 bg-[#0a1210]/80 p-5 backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Vegetation health</p>
+          <p class="text-3xl font-semibold text-white">NDVI map</p>
+          <p class="mt-2 text-xs text-white/40">Healthy, moderate and low vegetation zones, and change since the previous pass.</p>
+        </a>
       </div>
+
+      <a href="satellite.html"
+         class="mt-6 inline-flex items-center gap-2 rounded-lg bg-emerald-400 px-5 py-2.5 text-sm font-bold text-[#062015] transition hover:bg-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+        Open Satellite Analysis <span aria-hidden="true">→</span>
+      </a>
     </section>
 
     <!-- ===== Risk Assessments ===== -->
-    <section id="risk">
+    <!-- <section id="risk">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl sm:text-2xl font-bold text-white">Risk Assessments</h2>
         <span class="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded">AI Agent Active</span>
@@ -341,7 +382,7 @@
           <button class="w-full py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-300 text-sm font-medium rounded transition-colors">Run Diagnosis</button>
         </div>
       </div>
-    </section>
+    </section> -->
 
     <!-- ===== AI Insights ===== -->
     <section id="ai-insights" class="scroll-mt-24">
@@ -351,35 +392,22 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-        <!-- Chat -->
         <div class="lg:col-span-2 flex flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0a1210]/80 backdrop-blur-sm">
           <div id="ai-messages" class="hide-scrollbar h-[440px] space-y-4 overflow-y-auto p-5" aria-live="polite"></div>
-
           <div class="border-t border-white/10 p-4">
             <div class="mb-3 flex flex-wrap gap-2">
-              <button type="button" data-ai-chip="Should I irrigate my crops today?"
-                      class="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/70 transition hover:border-emerald-400/50 hover:text-emerald-300">Should I irrigate today?</button>
-              <button type="button" data-ai-chip="Is it safe to spray pesticide in the next few days?"
-                      class="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/70 transition hover:border-emerald-400/50 hover:text-emerald-300">Safe to spray this week?</button>
-              <button type="button" data-ai-chip="How do I protect my crops from heat stress?"
-                      class="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/70 transition hover:border-emerald-400/50 hover:text-emerald-300">Protect crops from heat</button>
+              <button type="button" data-ai-chip="Should I irrigate my crops today?" class="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/70 transition hover:border-emerald-400/50 hover:text-emerald-300">Should I irrigate today?</button>
+              <button type="button" data-ai-chip="Is it safe to spray pesticide in the next few days?" class="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/70 transition hover:border-emerald-400/50 hover:text-emerald-300">Safe to spray this week?</button>
+              <button type="button" data-ai-chip="How do I protect my crops from heat stress?" class="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/70 transition hover:border-emerald-400/50 hover:text-emerald-300">Protect crops from heat</button>
             </div>
-
             <form id="ai-form" class="flex gap-2" novalidate>
               <label for="ai-input" class="sr-only">Ask about your farm</label>
-              <input id="ai-input" type="text" autocomplete="off" maxlength="500"
-                     placeholder="Ask about weather, crops, soil or risks…"
-                     class="block w-full rounded-xl border border-white/12 bg-white/[0.04] px-4 py-3 text-[15px] text-white placeholder:text-white/25 transition-all duration-300 hover:border-white/30 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-400/15" />
-              <button id="ai-send" type="submit"
-                      class="shrink-0 rounded-xl bg-emerald-500 px-5 py-3 text-[15px] font-semibold text-[#04120c] transition-all duration-300 hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-60">
-                Ask
-              </button>
+              <input id="ai-input" type="text" autocomplete="off" maxlength="500" placeholder="Ask about weather, crops, soil or risks…" class="block w-full rounded-xl border border-white/12 bg-white/[0.04] px-4 py-3 text-[15px] text-white placeholder:text-white/25 transition-all duration-300 hover:border-white/30 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-400/15" />
+              <button id="ai-send" type="submit" class="shrink-0 rounded-xl bg-emerald-500 px-5 py-3 text-[15px] font-semibold text-[#04120c] transition-all duration-300 hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-60">Ask</button>
             </form>
           </div>
         </div>
 
-        <!-- Recalled questions -->
         <aside class="flex flex-col rounded-xl border border-white/10 bg-[#0a1210]/80 p-5 backdrop-blur-sm">
           <div class="mb-3 flex items-center justify-between">
             <h3 class="font-medium text-white">Recent questions</h3>
@@ -398,7 +426,7 @@
   <footer class="border-t border-white/10 bg-[#05080a] px-6 py-12 sm:px-10 lg:px-14 text-white/40 text-sm">
     <div class="max-w-[1600px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
       <div class="space-y-3">
-        <p class="text-white font-medium mb-4">BHOOMI</p>
+        <p class="serif mb-4 font-semibold tracking-[0.18em] text-white">BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI</p>
         <p class="cursor-pointer hover:underline">Agritech Advisory</p>
         <p class="cursor-pointer hover:underline">Emergency Logistics</p>
         <p class="cursor-pointer hover:underline">Micro-location Engine</p>
@@ -427,30 +455,136 @@
     </div>
   </footer>
 
+    <!-- ================= CROP MODAL ================= -->
+  <div id="crop-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md transition-opacity opacity-0">
+    <div class="relative w-full max-w-xl rounded-2xl border border-white/10 bg-[#0a1210] shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between p-4 border-b border-white/10 bg-[#05080a]">
+        <div>
+          <h3 class="text-lg font-bold text-white">What are you growing?</h3>
+          <p class="text-xs text-white/50">Weather insights and AI answers will be tuned to this crop.</p>
+        </div>
+        <button id="close-crop" type="button" class="p-2 text-white/50 hover:text-white rounded-lg hover:bg-white/10 transition" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-5"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="crop-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-5"></div>
+      <div class="flex items-center justify-between border-t border-white/10 px-5 py-3">
+        <button id="crop-clear" type="button" class="text-xs text-white/50 hover:text-red-300 transition">Clear crop</button>
+        <p class="text-xs text-white/40">Saved on this device and to your farm.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= MAP MODAL ================= -->
+  <div id="map-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md transition-opacity opacity-0">
+    <div class="relative w-full max-w-3xl rounded-2xl border border-white/10 bg-[#0a1210] shadow-2xl overflow-hidden flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-4 border-b border-white/10 bg-[#05080a]">
+        <div>
+          <h3 class="text-lg font-bold text-white">Pinpoint Your Farm</h3>
+          <p class="text-xs text-white/50">Click on the map or use your device's GPS.</p>
+        </div>
+        <button id="close-map" class="p-2 text-white/50 hover:text-white rounded-lg hover:bg-white/10 transition">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-5"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Map Container -->
+      <div class="relative w-full h-[400px]">
+        <div id="map" class="absolute inset-0 z-0"></div>
+        <div class="absolute left-4 top-4 z-10 w-[calc(100%-16.5rem)] max-sm:top-16 max-sm:w-[calc(100%-2rem)]">
+  <form id="place-form" class="flex gap-2" novalidate>
+    <label for="place-input" class="sr-only">Search a place or enter coordinates</label>
+    <input id="place-input" type="text" autocomplete="off" placeholder="Search village, town or lat, lng"
+           class="w-full rounded-lg border border-white/15 bg-[#0a1210]/95 px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-emerald-400" />
+    <button id="place-go" type="submit"
+            class="shrink-0 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-bold text-black shadow-lg hover:bg-emerald-400 disabled:opacity-60">Search</button>
+  </form>
+  <p id="place-msg" class="mt-2 hidden rounded-lg bg-[#0a1210]/95 px-3 py-2 text-xs text-amber-300"></p>
+  <ul id="place-results" class="mt-2 hidden max-h-44 space-y-1 overflow-y-auto rounded-lg border border-white/10 bg-[#0a1210]/95 p-1"></ul>
+</div>
+        <div class="absolute top-4 right-4 z-10">
+          <button id="locate-me" type="button" class="bg-emerald-500 text-black px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-emerald-400 flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4"><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/><circle cx="12" cy="12" r="4"/></svg>
+            Find My Location
+          </button>
+        </div>
+      </div>
+
+      <!-- Form Footer -->
+      <div class="p-5 border-t border-white/10 bg-[#0a1210]">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs text-white/50 uppercase mb-1">Farm Name</label>
+            <input type="text" id="farm-name" placeholder="e.g. North Field" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-emerald-400 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs text-white/50 uppercase mb-1">Detected District</label>
+            <input type="text" id="farm-district" readonly placeholder="Waiting for map click..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white/50 outline-none cursor-not-allowed">
+          </div>
+        </div>
+        <input type="hidden" id="farm-lat">
+        <input type="hidden" id="farm-lng">
+        <button id="save-farm" class="w-full py-3 rounded-xl bg-emerald-500 text-black font-bold text-sm hover:bg-emerald-400 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+          Save Farm Location
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= SCRIPTS ================= -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
+  
   <script>
-    /* ------------------------------------------------------------------
-       Navbar background on scroll
+        /* ------------------------------------------------------------------
+       Shared state read by weather.html (same keys)
        ------------------------------------------------------------------ */
+    const LS = {
+      get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+      set(k, v) { try { (v == null || v === '') ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { } },
+    };
+    const CROPS = {
+      wheat:     ['Wheat', '🌾'],
+      rice:      ['Rice (Paddy)', '🌾'],
+      maize:     ['Maize', '🌽'],
+      sugarcane: ['Sugarcane', '🎋'],
+      potato:    ['Potato', '🥔'],
+      mustard:   ['Mustard', '🌼'],
+      cotton:    ['Cotton', '🌿'],
+      soybean:   ['Soybean', '🌱'],
+      tomato:    ['Tomato', '🍅'],
+      onion:     ['Onion', '🧅'],
+      gram:      ['Gram (Chickpea)', '🌱'],
+      bajra:     ['Pearl Millet (Bajra)', '🌾'],
+    };
+    const getCrop = () => { const k = LS.get('bhoomi.crop'); return CROPS[k] ? k : ''; };
+    function publishFarm(lat, lng, place, farmName) {
+      LS.set('bhoomi.region', `${lat},${lng}|${place}`);
+      LS.set('bhoomi.farmName', farmName || '');
+    }
     /* ------------------------------------------------------------------
        Sign-in guard + account menu (Supabase session)
        ------------------------------------------------------------------ */
+    let currentUser = null;
     (async () => {
       const reveal = () => document.documentElement.classList.remove('auth-pending');
-      if (!window.sb) { console.error('Supabase is not configured (frontend/config.js).'); reveal(); return; }
+      if (!window.sb) { console.error('Supabase is not configured.'); reveal(); return; }
 
-      const { data: { session } } = await window.sb.auth.getSession();   // also finishes a Google redirect
+      const { data: { session } } = await window.sb.auth.getSession();
       if (!session) { window.location.replace('login.html'); return; }
 
-      const user  = session.user;
-      const meta  = user.user_metadata || {};
-      const name  = meta.full_name || meta.name || '';
-      const email = user.email || '';
-      const btn   = document.getElementById('user-btn');
-      document.getElementById('user-name').textContent  = name || email;
+      currentUser = session.user;
+      const meta = currentUser.user_metadata || {};
+      const name = meta.full_name || meta.name || '';
+      const email = currentUser.email || '';
+      const btn = document.getElementById('user-btn');
+      
+      document.getElementById('user-name').textContent = name || email;
       document.getElementById('user-email').textContent = name ? email : '';
 
       const avatar = meta.avatar_url || meta.picture;
@@ -462,7 +596,9 @@
       } else {
         document.getElementById('user-initial').textContent = (name || email || 'F').trim().charAt(0).toUpperCase();
       }
+      
       reveal();
+      loadFarmData(currentUser.id); // Load farm location on login
 
       const menu = document.getElementById('user-menu');
       const setMenu = (open) => { menu.classList.toggle('hidden', !open); btn.setAttribute('aria-expanded', String(open)); };
@@ -470,73 +606,55 @@
       document.addEventListener('click', (e) => { if (!menu.contains(e.target)) setMenu(false); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
 
-      document.getElementById('signout-btn').addEventListener('click', async () => {
-        try { localStorage.removeItem('bhoomi.ai.history.v1'); } catch { /* storage unavailable */ }
+            document.getElementById('signout-btn').addEventListener('click', async () => {
+        ['bhoomi.ai.history.v1', 'bhoomi.region', 'bhoomi.farmName', 'bhoomi.crop'].forEach((k) => LS.set(k, ''));
         await window.sb.auth.signOut();
         window.location.replace('login.html');
       });
-      window.sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') window.location.replace('login.html'); });
     })();
 
     const navbar = document.getElementById('navbar');
-    window.addEventListener('scroll', () => {
-      navbar.classList.toggle('scrolled', window.scrollY > 50);
-    }, { passive: true });
+    window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY > 50), { passive: true });
 
     /* ------------------------------------------------------------------
-       Time-of-day background (uses the device clock)
-         06:00 - 10:59  -> morning5.jpg
-         11:00 - 18:59  -> eveningsunny.jpg
-         19:00 - 05:59  -> night.png
+       Time-of-day background
        ------------------------------------------------------------------ */
     const heroImg = document.getElementById('dynamic-hero-bg');
-    const BACKGROUNDS = {
-      morning: './morning5.jpg',
-      evening: './eveningsunny.jpg',
-      night:   './night.png',
-    };
+    const BACKGROUNDS = { morning: './morning5.jpg', evening: './afternoon.png', night: './night.png' };
     let currentPeriod = null;
 
-    function periodFor(hour) {
-      if (hour >= 6 && hour < 11)  return 'morning';
-      if (hour >= 11 && hour < 19) return 'evening';
-      return 'night';
-    }
+    function periodFor(hour) { return (hour >= 6 && hour < 11) ? 'morning' : (hour >= 11 && hour < 19) ? 'evening' : 'night'; }
 
     function applyBackground() {
       const period = periodFor(new Date().getHours());
       if (period === currentPeriod) return;
       const isFirst = currentPeriod === null;
       currentPeriod = period;
-
       const swap = () => {
-        heroImg.onload  = () => heroImg.classList.remove('is-swapping');
-        heroImg.onerror = () => {
-          console.error('Background failed to load:', BACKGROUNDS[period],
-            '— keep the image in the same folder as dashboard.html and check the filename/case.');
-          heroImg.classList.remove('is-swapping');
-        };
+        heroImg.onload = () => heroImg.classList.remove('is-swapping');
+        heroImg.onerror = () => heroImg.classList.remove('is-swapping');
         heroImg.dataset.period = period;
         heroImg.src = BACKGROUNDS[period];
       };
-
       if (isFirst) swap();
-      else { heroImg.classList.add('is-swapping'); setTimeout(swap, 1000); }   // fade out, swap, fade in
+      else { heroImg.classList.add('is-swapping'); setTimeout(swap, 1000); }
     }
 
     /* ------------------------------------------------------------------
-       Live weather (Open-Meteo)
+       Live weather (Open-Meteo) - Now dynamic!
        ------------------------------------------------------------------ */
-    async function fetchWeather() {
+    let latestWeather = null;
+
+    async function fetchWeather(lat, lon) {
       try {
-        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=19.07&longitude=72.87&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m');
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m`);
         if (!res.ok) throw new Error('API failed');
-        const data = await res.json();
-        const current = data.current;
+        const current = (await res.json()).current;
+        
         latestWeather = {
           source: 'Open-Meteo',
           observed_at: current.time,
-          latitude: 19.07, longitude: 72.87,
+          latitude: lat, longitude: lon,
           temperature_c: current.temperature_2m,
           feels_like_c: current.apparent_temperature,
           humidity_pct: current.relative_humidity_2m,
@@ -554,7 +672,6 @@
         setTimeout(() => document.getElementById('live-temp').classList.remove('text-emerald-400'), 1000);
       } catch (error) {
         document.getElementById('live-temp').textContent = `--°C`;
-        document.getElementById('live-feels').textContent = `Unavailable`;
         document.getElementById('live-humidity').textContent = `--%`;
         document.getElementById('live-rain').textContent = `-- mm`;
         document.getElementById('live-wind').textContent = `-- km/h`;
@@ -562,11 +679,108 @@
     }
 
     /* ------------------------------------------------------------------
-       Click effect: water-tap ripple (a drop, then rings spreading outward)
+       Satellite & soil snapshot (real data, no keys) for the saved farm point
+         - Latest clear Sentinel-2 pass: Earth Search STAC (scene-level cloud %)
+         - Soil moisture: Open-Meteo model (not a sensor reading)
+       ------------------------------------------------------------------ */
+    const snap = {
+      status: document.getElementById('sat-snap-status'),
+      place: document.getElementById('snap-place'),
+      satDate: document.getElementById('snap-sat-date'),
+      satMeta: document.getElementById('snap-sat-meta'),
+      soil: document.getElementById('snap-soil'),
+      soilMeta: document.getElementById('snap-soil-meta'),
+    };
+    let snapToken = 0;
+    const SNAP_MAX_CLOUD = 20;
+    const snapDate = (iso) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+    async function snapSatellite(lat, lon, token) {
+      snap.satDate.textContent = '—';
+      snap.satMeta.textContent = 'Searching the satellite archive…';
+      try {
+        const end = new Date(), start = new Date(Date.now() - 45 * 864e5);
+        const res = await fetch('https://earth-search.aws.element84.com/v1/search', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            collections: ['sentinel-2-l2a'],
+            intersects: { type: 'Point', coordinates: [lon, lat] },
+            datetime: `${start.toISOString().slice(0, 10)}T00:00:00Z/${end.toISOString().slice(0, 10)}T23:59:59Z`,
+            limit: 12,
+            sortby: [{ field: 'properties.datetime', direction: 'desc' }],
+          }),
+        });
+        if (!res.ok) throw new Error('STAC HTTP ' + res.status);
+        const items = ((await res.json()).features || []);
+        if (token !== snapToken) return true;
+        if (!items.length) {
+          snap.satDate.textContent = 'No pass';
+          snap.satMeta.textContent = 'No Sentinel-2 scenes found here in the last 45 days.';
+          return true;
+        }
+        const clear = items.find((f) => (f.properties['eo:cloud_cover'] ?? 100) <= SNAP_MAX_CLOUD);
+        const newest = items[0];
+        if (clear) {
+          const age = Math.round((Date.now() - new Date(clear.properties.datetime)) / 864e5);
+          snap.satDate.textContent = snapDate(clear.properties.datetime);
+          snap.satMeta.textContent = `${Math.round(clear.properties['eo:cloud_cover'])}% scene cloud · ${age} day${age === 1 ? '' : 's'} ago · newest pass ${snapDate(newest.properties.datetime)}`;
+        } else {
+          snap.satDate.textContent = 'All cloudy';
+          snap.satMeta.textContent = `No pass under ${SNAP_MAX_CLOUD}% cloud in the last 45 days. Newest pass ${snapDate(newest.properties.datetime)}.`;
+        }
+        return true;
+      } catch (e) {
+        console.warn('Satellite snapshot failed', e);
+        if (token !== snapToken) return true;
+        snap.satDate.textContent = 'Unavailable';
+        snap.satMeta.textContent = 'Could not reach the Sentinel-2 catalogue right now.';
+        return false;
+      }
+    }
+
+    async function snapSoil(lat, lon, token) {
+      snap.soil.textContent = '—';
+      snap.soilMeta.textContent = 'Loading model estimate…';
+      const layers = [['soil_moisture_9_to_27cm', '9–27 cm'], ['soil_moisture_7_to_28cm', '7–28 cm']];
+      try {
+        for (const [key, label] of layers) {
+          const p = new URLSearchParams({ latitude: lat, longitude: lon, hourly: key, forecast_days: 1, timezone: 'auto' });
+          const r = await fetch(`https://api.open-meteo.com/v1/forecast?${p}`);
+          if (!r.ok) { if (r.status === 400) continue; throw new Error('Open-Meteo HTTP ' + r.status); }
+          const d = await r.json();
+          if (token !== snapToken) return true;
+          const nowKey = new Date(Date.now() + (d.utc_offset_seconds || 0) * 1000).toISOString().slice(0, 13) + ':00';
+          let i = d.hourly.time.indexOf(nowKey); if (i < 0) i = 0;
+          const v = d.hourly[key][i];
+          if (v == null) continue;
+          snap.soil.textContent = `${v.toFixed(3)} m³/m³`;
+          snap.soilMeta.textContent = `Root-zone layer ${label} · weather-model estimate, not a sensor`;
+          return true;
+        }
+        throw new Error('No soil-moisture layer');
+      } catch (e) {
+        console.warn('Soil snapshot failed', e);
+        if (token !== snapToken) return true;
+        snap.soil.textContent = 'Unavailable';
+        snap.soilMeta.textContent = 'Soil-moisture estimate could not be loaded right now.';
+        return false;
+      }
+    }
+
+    async function fetchSnapshot(lat, lon, place) {
+      const token = ++snapToken;
+      if (place) snap.place.textContent = place;
+      snap.status.textContent = 'Loading…';
+      const [a, b] = await Promise.all([snapSatellite(lat, lon, token), snapSoil(lat, lon, token)]);
+      if (token !== snapToken) return;
+      snap.status.textContent = (a && b) ? 'Live · Sentinel-2 + Open-Meteo' : 'Some data unavailable';
+    }
+
+    /* ------------------------------------------------------------------
+       Click effect: water-tap ripple
        ------------------------------------------------------------------ */
     (() => {
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
       const cv = document.getElementById('fx-click');
       const ctx = cv.getContext('2d');
       const drops = [];
@@ -588,26 +802,22 @@
       function draw(now) {
         ctx.clearRect(0, 0, w, h);
         const maxR = w < 640 ? 100 : 150;
-
         for (let d = drops.length - 1; d >= 0; d--) {
           const age = now - drops[d].t;
           if (age > 1700) { drops.splice(d, 1); continue; }
           const { x, y } = drops[d];
-
-          const p0 = age / 280;                                        // the drop hitting the surface
+          const p0 = age / 280;
           if (p0 < 1) {
             ctx.fillStyle = `rgba(214, 255, 247, ${0.85 * (1 - p0)})`;
             ctx.beginPath(); ctx.arc(x, y, 8 * (1 - p0) + 1, 0, Math.PI * 2); ctx.fill();
           }
-
-          for (let i = 0; i < 3; i++) {                                // rings, each a little later and smaller
+          for (let i = 0; i < 3; i++) {
             const a = age - i * 150;
             if (a < 0) continue;
             const p = a / 1200;
             if (p >= 1) continue;
             const r = easeOut(p) * maxR * (1 - i * 0.2);
             const alpha = (1 - p) * (0.6 - i * 0.14);
-
             if (i === 0) {
               const g = ctx.createRadialGradient(x, y, r * 0.55, x, y, r);
               g.addColorStop(0, 'rgba(52, 211, 153, 0)');
@@ -620,7 +830,6 @@
             ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
           }
         }
-
         raf = drops.length ? requestAnimationFrame(draw) : 0;
         if (!raf) ctx.clearRect(0, 0, w, h);
       }
@@ -632,17 +841,11 @@
 
     /* ------------------------------------------------------------------
        AI Insights chat
-       - the conversation is saved in this browser and restored on reload ("recall")
-       - the last few messages and the live weather reading go to the backend with every question
-       - no canned answers: if the backend is not running you get a clear error instead
-       Backend contract:  POST /api/ai/chat
-         request : { messages: [{role, content}], context: { weather } }
-         response: { reply: "text", sources: [{ name, url }] }   // sources optional
        ------------------------------------------------------------------ */
     const AI_ENDPOINT = '/api/ai/chat';
     const HISTORY_KEY = 'bhoomi.ai.history.v1';
-    const MAX_CONTEXT = 10;      // messages sent to the AI each time
-    const MAX_STORED  = 60;      // messages kept on this device
+    const MAX_CONTEXT = 10;
+    const MAX_STORED  = 60;
 
     const aiEl = {
       messages: document.getElementById('ai-messages'),
@@ -653,34 +856,26 @@
       clear:    document.getElementById('ai-clear'),
       status:   document.getElementById('ai-status'),
     };
-    let latestWeather = null;    // filled in by fetchWeather()
     let aiBusy = false;
 
     function loadHistory() {
       try {
         const raw = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-        return Array.isArray(raw)
-          ? raw.filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-          : [];
+        return Array.isArray(raw) ? raw.filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string') : [];
       } catch { return []; }
     }
-    function saveHistory() {
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(aiHistory.slice(-MAX_STORED))); } catch { /* storage unavailable */ }
-    }
+    function saveHistory() { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(aiHistory.slice(-MAX_STORED))); } catch { } }
     let aiHistory = loadHistory();
 
     function bubble(msg) {
       const row = document.createElement('div');
       row.className = 'flex ' + (msg.role === 'user' ? 'justify-end' : 'justify-start');
       const box = document.createElement('div');
-      box.className = msg.role === 'user'
-        ? 'max-w-[85%] rounded-2xl rounded-br-sm bg-emerald-500/20 border border-emerald-400/25 px-4 py-2.5 text-sm text-white'
-        : 'max-w-[85%] rounded-2xl rounded-bl-sm bg-white/[0.06] border border-white/10 px-4 py-2.5 text-sm text-white/85';
+      box.className = msg.role === 'user' ? 'max-w-[85%] rounded-2xl rounded-br-sm bg-emerald-500/20 border border-emerald-400/25 px-4 py-2.5 text-sm text-white' : 'max-w-[85%] rounded-2xl rounded-bl-sm bg-white/[0.06] border border-white/10 px-4 py-2.5 text-sm text-white/85';
       const text = document.createElement('p');
       text.className = 'whitespace-pre-wrap leading-relaxed';
       text.textContent = msg.content;
       box.appendChild(text);
-
       if (msg.role === 'assistant' && Array.isArray(msg.sources) && msg.sources.length) {
         const src = document.createElement('p');
         src.className = 'mt-2 text-[11px] text-white/40';
@@ -688,13 +883,7 @@
         msg.sources.forEach((s, i) => {
           if (!s || typeof s.name !== 'string') return;
           if (i) src.append(', ');
-          if (typeof s.url === 'string' && /^https?:\/\//i.test(s.url)) {
-            const a = document.createElement('a');
-            a.href = s.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
-            a.className = 'text-emerald-400 hover:underline';
-            a.textContent = s.name;
-            src.appendChild(a);
-          } else src.append(s.name);
+          src.append(s.name);
         });
         box.appendChild(src);
       }
@@ -707,7 +896,7 @@
       if (!aiHistory.length) {
         const empty = document.createElement('div');
         empty.className = 'flex h-full flex-col items-center justify-center text-center text-sm text-white/40';
-        empty.innerHTML = '<p class="text-white/60 font-medium">Ask anything about your farm</p><p class="mt-1 max-w-xs">Weather, irrigation, spraying, heat or flood risk. Your conversation is remembered here.</p>';
+        empty.innerHTML = '<p class="text-white/60 font-medium">Ask anything about your farm</p><p class="mt-1 max-w-xs">Weather, irrigation, spraying, heat or flood risk.</p>';
         aiEl.messages.appendChild(empty);
       } else {
         aiHistory.forEach((m) => aiEl.messages.appendChild(bubble(m)));
@@ -728,7 +917,6 @@
         const li = document.createElement('li');
         const b = document.createElement('button');
         b.type = 'button';
-        b.title = q.content;
         b.className = 'block w-full truncate rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-white/70 transition hover:border-emerald-400/40 hover:text-white';
         b.textContent = q.content;
         b.addEventListener('click', () => { aiEl.input.value = q.content; aiEl.input.focus(); });
@@ -740,57 +928,42 @@
 
     function appendNote(text, isError) {
       const row = document.createElement('div');
-      row.className = isError
-        ? 'rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300'
-        : 'flex items-center gap-2 px-1 text-sm text-white/40';
+      row.className = isError ? 'rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300' : 'flex items-center gap-2 px-1 text-sm text-white/40';
       row.textContent = text;
-      if (isError) row.setAttribute('role', 'alert');
       aiEl.messages.appendChild(row);
       aiEl.messages.scrollTop = aiEl.messages.scrollHeight;
-      return row;
     }
 
-    function setBusy(busy) {
-      aiBusy = busy;
-      aiEl.send.disabled = busy;
-      aiEl.send.textContent = busy ? 'Thinking…' : 'Ask';
-    }
+    function setBusy(busy) { aiBusy = busy; aiEl.send.disabled = busy; aiEl.send.textContent = busy ? 'Thinking…' : 'Ask'; }
 
     async function askAI(text) {
       aiHistory.push({ role: 'user', content: text, ts: Date.now() });
       saveHistory(); renderMessages(); renderHistory();
       setBusy(true);
       appendNote('Thinking…', false);
-
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 30000);
       let errorMsg = '';
       try {
         const res = await window.apiFetch(AI_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          signal: ctrl.signal,
           body: JSON.stringify({
             messages: aiHistory.slice(-MAX_CONTEXT).map(({ role, content }) => ({ role, content })),
-            context: { weather: latestWeather },
+                        context: {
+              weather: latestWeather,
+              crop: getCrop() ? CROPS[getCrop()][0] : null,
+              location: document.getElementById('display-location').textContent,
+              farm_name: LS.get('bhoomi.farmName') || null,
+            },
           }),
         });
         if (!res.ok) throw new Error(`The AI service answered with an error (${res.status}).`);
         const data = await res.json();
-        if (!data || typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('The AI service sent an empty answer.');
-        aiHistory.push({
-          role: 'assistant', content: data.reply.trim(), ts: Date.now(),
-          sources: Array.isArray(data.sources) ? data.sources.slice(0, 6) : [],
-        });
+        aiHistory.push({ role: 'assistant', content: data.reply.trim(), ts: Date.now(), sources: data.sources || [] });
         saveHistory();
       } catch (err) {
-        if (err.name === 'AbortError') errorMsg = 'The AI took too long to answer. Please try again.';
-        else if (err instanceof TypeError) errorMsg = 'Could not reach the AI service. Start the backend and expose POST /api/ai/chat.';
-        else errorMsg = err.message || 'Something went wrong. Please try again.';
+        errorMsg = err.message || 'Something went wrong.';
       } finally {
-        clearTimeout(timer);
-        setBusy(false);
-        renderMessages(); renderHistory();
+        setBusy(false); renderMessages(); renderHistory();
         if (errorMsg) appendNote(errorMsg, true);
       }
     }
@@ -802,23 +975,293 @@
       aiEl.input.value = '';
       askAI(text);
     });
-    document.querySelectorAll('[data-ai-chip]').forEach((chip) =>
-      chip.addEventListener('click', () => { if (!aiBusy) askAI(chip.dataset.aiChip); })
-    );
-    aiEl.clear.addEventListener('click', () => {
-      if (!aiHistory.length || !confirm('Clear your saved AI conversation?')) return;
-      aiHistory = []; saveHistory(); renderMessages(); renderHistory();
-    });
-
-    renderMessages();
-    renderHistory();
+    document.querySelectorAll('[data-ai-chip]').forEach((chip) => chip.addEventListener('click', () => { if (!aiBusy) askAI(chip.dataset.aiChip); }));
+    aiEl.clear.addEventListener('click', () => { if (confirm('Clear your saved AI conversation?')) { aiHistory = []; saveHistory(); renderMessages(); renderHistory(); } });
+    renderMessages(); renderHistory();
 
     /* ------------------------------------------------------------------
-       Start
+       MAP & LOCATION LOGIC
        ------------------------------------------------------------------ */
+    let map, marker;
+    let selectedLat = null, selectedLng = null;
+    const modal = document.getElementById('map-modal');
+    const saveBtn = document.getElementById('save-farm');
+    const districtInput = document.getElementById('farm-district');
+    
+    // Toggle Modal
+    // document.getElementById('add-farm-btn').addEventListener('click', () => {
+    //   modal.classList.remove('hidden');
+    //   modal.classList.add('flex');
+    //   setTimeout(() => modal.classList.remove('opacity-0'), 10);
+    //   if (!map) initMap();
+    // });
+    
+    // document.getElementById('close-map').addEventListener('click', () => {
+    //   modal.classList.add('opacity-0');
+    //   setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
+    // });
+
+
+
+    // toggle modal::-----------------------------------------------------------------------
+
+    let savedFarm = null;
+
+    function openFarmModal() {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => modal.classList.remove('opacity-0'), 10);
+      if (!map) initMap();
+      setTimeout(() => {
+        map.invalidateSize();
+        if (savedFarm) map.setView([savedFarm.latitude, savedFarm.longitude], 11);
+      }, 250);
+    }
+    function closeFarmModal() {
+      modal.classList.add('opacity-0');
+      setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
+    }
+    document.getElementById('add-farm-btn').addEventListener('click', openFarmModal);
+    document.getElementById('close-map').addEventListener('click', closeFarmModal);
+
+    /* ---------- Crop picker ---------- */
+    const cropModal = document.getElementById('crop-modal');
+    const cropBtn = document.getElementById('add-crop-btn');
+    const cropGrid = document.getElementById('crop-grid');
+
+    function renderCrop() {
+      const k = getCrop();
+      cropBtn.textContent = k ? `${CROPS[k][1]} ${CROPS[k][0]}` : 'Select Crop';
+      cropGrid.replaceChildren();
+      Object.entries(CROPS).forEach(([key, [name, icon]]) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'rounded-xl border px-3 py-3 text-left text-sm font-semibold transition ' +
+          (key === k ? 'border-emerald-400 bg-emerald-400/15 text-emerald-300'
+                     : 'border-white/10 bg-white/[0.04] text-white/80 hover:border-emerald-400/50 hover:text-white');
+        b.textContent = `${icon} ${name}`;
+        b.addEventListener('click', () => { setCrop(key); closeCropModal(); });
+        cropGrid.appendChild(b);
+      });
+    }
+    function setCrop(key) {
+    LS.set('bhoomi.crop', key || '');
+    LS.set('bhoomi.cropName', key ? CROPS[key][0] : '');
+      renderCrop();
+      // Persist to the farm row. Needs a `crop` text column (see note); failures are ignored.
+      if (currentUser && window.sb) {
+        window.sb.from('farms').update({ crop: key || null }).eq('user_id', currentUser.id).then(() => {}, () => {});
+      }
+    }
+    function openCropModal() {
+      cropModal.classList.remove('hidden'); cropModal.classList.add('flex');
+      setTimeout(() => cropModal.classList.remove('opacity-0'), 10);
+    }
+    function closeCropModal() {
+      cropModal.classList.add('opacity-0');
+      setTimeout(() => { cropModal.classList.add('hidden'); cropModal.classList.remove('flex'); }, 200);
+    }
+    cropBtn.addEventListener('click', openCropModal);
+    document.getElementById('close-crop').addEventListener('click', closeCropModal);
+    document.getElementById('crop-clear').addEventListener('click', () => { setCrop(''); closeCropModal(); });
+    cropModal.addEventListener('click', (e) => { if (e.target === cropModal) closeCropModal(); });
+    renderCrop();
+
+    /* Open the right popup when arriving from weather.html (#farm / #crop) */
+    function openFromHash() {
+      if (location.hash === '#farm') openFarmModal();
+      else if (location.hash === '#crop') openCropModal();
+    }
+    window.addEventListener('hashchange', openFromHash);
+
+
+       function initMap() {
+      map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
+      
+      // Use Esri's Free Dark Gray Canvas (No API Key Required)
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+        maxZoom: 16
+      }).addTo(map);
+
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+      map.on('click', (e) => setMarker(e.latlng.lat, e.latlng.lng));
+    }
+    function setMarker(lat, lng) {
+      if (marker) {
+        marker.setLatLng([lat, lng]);
+      } else {
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        marker.on('dragend', (e) => {
+          const pos = e.target.getLatLng();
+          setMarker(pos.lat, pos.lng);
+        });
+      }
+      selectedLat = lat; selectedLng = lng;
+      document.getElementById('farm-lat').value = lat;
+      document.getElementById('farm-lng').value = lng;
+      saveBtn.disabled = false;
+      
+      districtInput.value = "Loading district...";
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`)
+        .then(res => res.json())
+        .then(data => {
+          const district = data.address?.state_district || data.address?.county || data.address?.city || "Unknown District";
+          const state = data.address?.state || "";
+          districtInput.value = `${district}, ${state}`;
+        })
+        .catch(() => districtInput.value = "Location found");
+    }
+
+    document.getElementById('locate-me').addEventListener('click', () => {
+      if (!navigator.geolocation) return alert("Geolocation is not supported");
+      const btn = document.getElementById('locate-me');
+      btn.textContent = "Locating...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          map.flyTo([pos.coords.latitude, pos.coords.longitude], 13, { duration: 1.5 });
+          setMarker(pos.coords.latitude, pos.coords.longitude);
+          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4"><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/><circle cx="12" cy="12" r="4"/></svg> Find My Location`;
+        },
+        (err) => {
+          alert("Could not get your location.");
+          btn.innerHTML = `Find My Location`;
+        },
+        { enableHighAccuracy: true }
+      );
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      const farmName = document.getElementById('farm-name').value.trim();
+      const district = districtInput.value;
+      if (!farmName) return alert("Please enter a name.");
+      if (!selectedLat || !selectedLng) return alert("Please select a location.");
+      if (district.startsWith('Loading')) return alert("Still detecting the district, try again in a second.");
+      saveBtn.textContent = "Saving...";
+      saveBtn.disabled = true;
+
+      // Check if user already has a farm to UPDATE instead of INSERT
+      const { data: existingFarm } = await window.sb.from('farms').select('id').eq('user_id', currentUser.id).single();
+
+      let error;
+      if (existingFarm) {
+        const { error: updateErr } = await window.sb.from('farms').update({
+          farm_name: farmName, latitude: selectedLat, longitude: selectedLng, district: district
+        }).eq('id', existingFarm.id);
+        error = updateErr;
+      } else {
+        const { error: insertErr } = await window.sb.from('farms').insert({
+          user_id: currentUser.id, farm_name: farmName, latitude: selectedLat, longitude: selectedLng, district: district
+        });
+        error = insertErr;
+      }
+
+      if (error) {
+        alert("Failed to save: " + error.message);
+        saveBtn.textContent = "Save Farm Location";
+        saveBtn.disabled = false;
+      } else {
+        document.getElementById('display-location').textContent = district;
+        document.getElementById('add-farm-btn').textContent = "Update Farm";
+        document.getElementById('close-map').click();
+        saveBtn.textContent = "Save Farm Location";
+        publishFarm(selectedLat, selectedLng, district, farmName);
+        savedFarm = { latitude: selectedLat, longitude: selectedLng };
+        fetchWeather(selectedLat, selectedLng);
+        fetchSnapshot(selectedLat, selectedLng, district);
+      }
+    });
+
+        async function loadFarmData(userId) {
+      const { data, error } = await window.sb.from('farms').select('*').eq('user_id', userId).single();
+      if (data && !error) {
+        savedFarm = data;
+        const place = data.district || data.farm_name || 'My Farm';
+        document.getElementById('display-location').textContent = place;
+        document.getElementById('add-farm-btn').textContent = "Update Farm";
+        document.getElementById('farm-name').value = data.farm_name;
+        publishFarm(data.latitude, data.longitude, place, data.farm_name);
+        if (data.crop && CROPS[data.crop]) { LS.set('bhoomi.crop', data.crop);
+        LS.set('bhoomi.cropName', CROPS[data.crop][0]); }        renderCrop();
+        fetchWeather(data.latitude, data.longitude);
+        fetchSnapshot(data.latitude, data.longitude, place);
+      } else {
+        LS.set('bhoomi.region', ''); LS.set('bhoomi.farmName', '');
+        document.getElementById('display-location').textContent = "Location Not Set";
+        document.getElementById('live-temp').textContent = "--°C";
+        renderCrop();
+      }
+    }
+
     applyBackground();
-    setInterval(applyBackground, 60 * 1000);   // re-check the clock every minute
-    fetchWeather();
+    setInterval(applyBackground, 60 * 1000);
+        /* ------------------------------------------------------------------
+       Manual location: search a place name, or type "lat, lng"
+       Uses the existing map, setMarker() and Save button, so saving works as before.
+       ------------------------------------------------------------------ */
+    (() => {
+      const form = document.getElementById('place-form');
+      const input = document.getElementById('place-input');
+      const goBtn = document.getElementById('place-go');
+      const msg = document.getElementById('place-msg');
+      const list = document.getElementById('place-results');
+      const COORD_RE = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
+
+      const say = (t) => { msg.textContent = t || ''; msg.classList.toggle('hidden', !t); };
+      const clearList = () => { list.replaceChildren(); list.classList.add('hidden'); };
+
+      function pick(lat, lng) {
+        clearList(); say('');
+        if (!map) initMap();
+        map.flyTo([lat, lng], 13, { duration: 1.2 });
+        setMarker(lat, lng);
+      }
+
+      async function searchPlace(q) {
+        const p = new URLSearchParams({ q, format: 'json', limit: '6', countrycodes: 'in' });
+        const res = await fetch('https://nominatim.openstreetmap.org/search?' + p);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearList(); say('');
+        const q = input.value.trim();
+        if (!q) { say('Type a village, town, district or coordinates.'); return; }
+
+        const m = q.match(COORD_RE);
+        if (m) {
+          const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+          if (Math.abs(lat) > 90 || Math.abs(lng) > 180) { say('Coordinates look wrong. Use latitude, longitude, for example 25.4358, 81.8463.'); return; }
+          pick(lat, lng);
+          return;
+        }
+
+        goBtn.disabled = true; goBtn.textContent = 'Searching…';
+        try {
+          const rows = await searchPlace(q);
+          if (!rows.length) { say('No place found. Try a nearby town or district, or type coordinates.'); return; }
+          if (rows.length === 1) { pick(+rows[0].lat, +rows[0].lon); return; }
+          rows.forEach((r) => {
+            const li = document.createElement('li');
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'block w-full truncate rounded-md px-3 py-2 text-left text-sm text-white/85 transition hover:bg-emerald-400/15 hover:text-white';
+            b.textContent = r.display_name;
+            b.addEventListener('click', () => pick(+r.lat, +r.lon));
+            li.appendChild(b);
+            list.appendChild(li);
+          });
+          list.classList.remove('hidden');
+        } catch (err) {
+          console.warn('Place search failed', err);
+          say('Search is not available right now. Check your internet connection and try again.');
+        } finally {
+          goBtn.disabled = false; goBtn.textContent = 'Search';
+        }
+      });
+    })();
   </script>
 </body>
 </html>

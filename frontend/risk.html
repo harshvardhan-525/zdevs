@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en" translate="no" class="h-full bg-[#05080a] scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#05080a" />
+  <meta name="google" content="notranslate" />
+  <title>BH∞MI · Risk</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="bhoomi-cache.js"></script>
+
+  <!-- SHARED DESIGN SYSTEM (identical on every page) -->
+  <style>
+    :root { --leaf:#34d399; --leaf-soft:#a7f3d0; --card:rgba(10,18,16,.82); --line:rgba(255,255,255,.16); }
+    html { -webkit-text-size-adjust:100%; font-size:112.5%; scroll-padding-top:6rem; }
+    @media (min-width:1920px) { html { font-size:125%; } }
+    body { font-family:"Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-weight:500; }
+    .serif { font-family:"Fraunces", Georgia, serif; }
+
+    @view-transition { navigation: auto; }
+    #navbar { view-transition-name: site-nav; }
+    ::view-transition-group(site-nav) { animation: none; }
+    ::view-transition-old(site-nav)   { display: none; }
+    ::view-transition-new(site-nav)   { animation: none; }
+    ::view-transition-old(root) { animation: vtOut .18s ease both; }
+    ::view-transition-new(root) { animation: vtIn .35s ease both; }
+    @keyframes vtOut { to { opacity: 0; } }
+    @keyframes vtIn  { from { opacity: 0; } }
+
+    .font-light    { font-weight:500; }
+    .font-medium   { font-weight:600; }
+    .font-semibold { font-weight:700; }
+    h1, h2, h3     { letter-spacing:-.005em; }
+    .text-xs          { font-size:.85rem; line-height:1.3rem; }
+    .text-sm          { font-size:1rem;   line-height:1.55rem; }
+    .text-\[10px\]     { font-size:.8rem; }
+    .text-\[11px\]     { font-size:.8rem; }
+    .text-\[15px\]     { font-size:1rem; }
+
+    .text-white\/30 { color:rgba(255,255,255,.55); }
+    .text-white\/35 { color:rgba(255,255,255,.60); }
+    .text-white\/40 { color:rgba(255,255,255,.66); }
+    .text-white\/50 { color:rgba(255,255,255,.74); }
+    .text-white\/60 { color:rgba(255,255,255,.82); }
+    .text-white\/70 { color:rgba(255,255,255,.90); }
+    .text-white\/80 { color:rgba(255,255,255,.94); }
+    .border-white\/10 { border-color:rgba(255,255,255,.18); }
+
+    .eyebrow       { color:var(--leaf); font-weight:700; font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; }
+    .section-title { font-size:1.55rem; line-height:2rem; font-weight:700; color:#fff; }
+    .muted         { color:rgba(255,255,255,.72); }
+
+    .hide-scrollbar::-webkit-scrollbar { display:none; }
+    .hide-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+    .fade-up { animation:fadeUp .8s cubic-bezier(.22,.61,.36,1) both; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+
+    .bg-shade {
+      background:
+        radial-gradient(120% 80% at 50% -10%, rgba(52,211,153,.10) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(5,8,10,.25) 0%, rgba(5,8,10,.55) 55%, rgba(5,8,10,.88) 100%);
+    }
+    .vignette { background:radial-gradient(120% 100% at 50% 30%, transparent 40%, rgba(0,0,0,.55) 100%); }
+    .grain {
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity:.05;
+    }
+    .hero-img { transform:scale(1.08); transition:opacity 1s ease; opacity:0; }
+    .hero-img[data-period="morning"] { filter:blur(7px) brightness(1.05) saturate(1.1); opacity:.9; }
+    .hero-img[data-period="evening"] { filter:blur(7px) brightness(.85) sepia(.15);     opacity:.85; }
+    .hero-img[data-period="night"]   { filter:blur(8px) brightness(.75) contrast(1.15); opacity:.85; }
+    .hero-img.is-swapping            { opacity:0 !important; }
+
+    #navbar {
+      background:rgba(5,8,10,.86);
+      -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .nav-link { position:relative; padding:.35rem 0; color:rgba(255,255,255,.86); font-weight:600; transition:color .25s ease; }
+    .nav-link::after {
+      content:""; position:absolute; left:0; right:0; bottom:-.05rem; height:2px; border-radius:2px;
+      background:linear-gradient(90deg,#34d399,#a7f3d0); transform:scaleX(0); transform-origin:left center;
+      transition:transform .35s cubic-bezier(.22,.61,.36,1);
+    }
+    .nav-link:hover, .nav-link:focus-visible, .nav-link[aria-current="page"] { color:#fff; }
+    .nav-link:hover::after, .nav-link:focus-visible::after, .nav-link[aria-current="page"]::after { transform:scaleX(1); }
+    .mobile-menu summary { list-style:none; }
+    .mobile-menu summary::-webkit-details-marker { display:none; }
+
+    .wordmark { position:relative; }
+    .wordmark-infinity {
+      display:inline-block; margin:0 .015em; color:#34d399; -webkit-text-fill-color:#34d399;
+      background:none; -webkit-background-clip:initial; background-clip:initial;
+      font-family:"Manrope", sans-serif; font-size:1.12em; font-weight:600; letter-spacing:0; line-height:1; vertical-align:-.045em;
+    }
+    .wordmark-text {
+      display:inline-block;
+      background:linear-gradient(100deg,#fff 0%,#fff 36%,#6ee7b7 47%,#d1fae5 53%,#fff 64%,#fff 100%);
+      background-size:260% 100%; background-position:100% 0;
+      -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent;
+      transform-origin:left center; transition:transform .5s cubic-bezier(.22,.61,.36,1), filter .5s ease;
+    }
+    .wordmark::after {
+      content:""; position:absolute; left:.75rem; right:.75rem; bottom:.05rem; height:2px; border-radius:2px;
+      background:linear-gradient(90deg,#34d399,#a7f3d0 60%,transparent);
+      transform:scaleX(0); transform-origin:left center; transition:transform .6s cubic-bezier(.22,.61,.36,1);
+    }
+    .wordmark:hover .wordmark-text, .wordmark:focus-visible .wordmark-text {
+      transform:scale(1.04); filter:drop-shadow(0 0 14px rgba(52,211,153,.55));
+      animation:sheen 1.1s cubic-bezier(.4,0,.2,1) forwards;
+    }
+    .wordmark:hover::after, .wordmark:focus-visible::after { transform:scaleX(1); }
+    @keyframes sheen { to { background-position:0% 0; } }
+
+    .card {
+      position:relative; background:var(--card); border:1px solid var(--bc, var(--line)); border-radius:1rem;
+      -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+      transition:transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease, border-color .3s ease;
+    }
+    .card::before {
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:0;
+      background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%), rgba(52,211,153,.13), transparent 45%);
+      transition:opacity .3s ease;
+    }
+    .card:hover::before { opacity:1; }
+    .card:not(.card-static):hover {
+      transform:translateY(-4px) scale(1.02);
+      box-shadow:0 20px 40px -10px rgba(0,0,0,.8), 0 0 22px rgba(52,211,153,.12);
+      border-color:rgba(52,211,153,.45); z-index:10;
+    }
+    .card-static:hover { border-color:rgba(52,211,153,.3); }
+
+    .lift { transition:transform .25s ease, box-shadow .25s ease, background-color .25s ease, border-color .25s ease, color .25s ease; }
+    .lift:hover  { transform:translateY(-2px); box-shadow:0 8px 24px rgba(52,211,153,.18); }
+    .lift:active { transform:translateY(0); box-shadow:none; }
+    .glass { background:rgba(0,0,0,.4); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:.9rem; }
+    .field {
+      color:var(--leaf-soft); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.2);
+      border-radius:.6rem; padding:.4rem .7rem; outline:none;
+      transition:border-color .25s ease, box-shadow .25s ease, background-color .25s ease;
+    }
+    .field::placeholder { color:rgba(255,255,255,.5); }
+    .field:hover  { border-color:rgba(255,255,255,.4); }
+    .field:focus  { border-color:var(--leaf); box-shadow:0 0 0 3px rgba(52,211,153,.15); }
+    select.field option { background:#0a1210; color:#fff; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+    }
+  </style>
+
+  <style>
+/* ---- Risk page only ---- */
+.pill { display:inline-block; border-radius:999px; padding:.15rem .75rem; font-size:.85rem; font-weight:800; border:1px solid; white-space:nowrap; }
+.pill.l0 { color:#a7f3d0; background:rgba(52,211,153,.12); border-color:rgba(52,211,153,.35); }
+.pill.l1 { color:#fde68a; background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.4); }
+.pill.l2 { color:#fecaca; background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.45); }
+.chip { display:inline-block; border-radius:999px; padding:.1rem .6rem; font-size:.8rem; font-weight:700; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08); color:rgba(255,255,255,.85); white-space:nowrap; }
+.skeleton { color:rgba(255,255,255,.5); }
+.cell { border-radius:.6rem; padding:.45rem .25rem; text-align:center; font-weight:700; font-size:.9rem; border:1px solid rgba(255,255,255,.1); }
+.cell.c0 { background:rgba(255,255,255,.04); color:rgba(255,255,255,.85); }
+.cell.c1 { background:rgba(251,191,36,.18); border-color:rgba(251,191,36,.45); color:#fde68a; }
+.cell.c2 { background:rgba(239,68,68,.22); border-color:rgba(239,68,68,.5); color:#fecaca; }
+.cell.cw { background:rgba(56,189,248,.16); border-color:rgba(56,189,248,.4); color:#bae6fd; }
+  </style>
+</head>
+
+<body class="min-h-full text-white antialiased selection:bg-emerald-400/30">
+
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#05080a]" aria-hidden="true">
+    <img id="dynamic-hero-bg" class="hero-img is-swapping absolute inset-0 h-full w-full object-cover object-center" alt="" />
+    <div class="absolute inset-0 bg-shade"></div>
+    <div class="absolute inset-0 vignette"></div>
+    <div class="absolute inset-0 grain"></div>
+  </div>
+
+  <canvas id="fx-click" class="pointer-events-none fixed inset-0 z-[60] h-full w-full" aria-hidden="true"></canvas>
+
+  <!-- NAVBAR: BH∞MI | Dashboard | Weather | Satellite | Risk | AI Insights | My Farm -->
+  <nav id="navbar" class="fixed top-0 z-50 flex w-full items-center justify-between px-6 py-4 sm:px-10 lg:px-14">
+    <div class="flex items-center gap-10">
+      <a href="dashboard.html" aria-label="BHOOMI home"
+         class="wordmark group relative -ml-3 inline-flex items-center rounded-xl px-3 py-1.5 pb-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70">
+        <span class="wordmark-text serif text-[1.3rem] font-semibold uppercase leading-none tracking-[0.22em] sm:text-[1.6rem]">
+          BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI
+        </span>
+      </a>
+      <div class="hidden items-center gap-7 text-sm lg:flex">
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
+        <a href="weather.html" class="nav-link">Weather</a>
+        <a href="satellite.html" class="nav-link">Satellite</a>
+        <a href="risk.html" class="nav-link" aria-current="page">Risk</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 text-sm">
+      <a href="dashboard.html#ai-insights" class="nav-link flex items-center gap-1 !text-emerald-400 hover:!text-emerald-300">
+        AI Insights <span class="ml-1 rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px]">New</span>
+      </a>
+      <a href="dashboard.html#farm" class="nav-link hidden sm:block">My Farm</a>
+      <details class="mobile-menu relative lg:hidden">
+        <summary class="lift cursor-pointer rounded-lg border border-white/20 px-3 py-1.5 font-semibold text-white/90">Menu</summary>
+        <div class="card card-static absolute right-0 mt-3 flex w-56 flex-col gap-3 p-4">
+          <a href="dashboard.html" class="nav-link w-fit">Dashboard</a>
+          <a href="weather.html" class="nav-link w-fit">Weather</a>
+          <a href="satellite.html" class="nav-link w-fit">Satellite</a>
+          <a href="risk.html" class="nav-link w-fit" aria-current="page">Risk</a>
+          <a href="dashboard.html#farm" class="nav-link w-fit">My Farm</a>
+        </div>
+      </details>
+      <a href="dashboard.html#farm" aria-label="My farm profile"
+         class="lift flex size-8 items-center justify-center rounded bg-emerald-600 text-xs font-bold ring-1 ring-white/20 hover:ring-emerald-400">F</a>
+    </div>
+  </nav>
+
+  <main class="relative z-10 mx-auto max-w-[1600px] space-y-12 px-6 pb-24 pt-28 sm:px-10 lg:px-14">
+
+    <!-- Location bar (location comes from the Dashboard) -->
+    <section>
+      <div class="card card-static flex flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center">
+        <div>
+          <p class="text-sm font-bold text-white"><span data-region-name>No farm saved</span>
+            <span class="muted ml-2 font-medium">· Crop: <span data-crop-name>Not selected</span>
+            <a href="dashboard.html#crop" class="ml-1 text-emerald-300 underline underline-offset-4">Change crop</a>
+    ·       <span id="today-date">—</span> · <span id="status" class="text-emerald-300">Loading…</span></span>
+        </p>
+          <p class="muted mt-1 text-xs">
+         <span data-region-hint class="hidden text-amber-300">No farm saved yet. Open the Dashboard, click Add Your Farm and save a      location. </span>
+         Ratings use forecasts and model estimates for your saved farm point, not readings from your field.
+        </p>
+        </div>
+        <a href="dashboard.html#farm" class="lift inline-flex w-fit shrink-0 items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-sm font-bold text-emerald-300 hover:border-emerald-400/60 hover:text-emerald-200">Change location <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+
+    <!-- Overall -->
+    <section id="overall">
+      <div class="card card-static flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <p class="eyebrow mb-1">Next 7 days</p>
+          <p id="overall-label" class="serif text-3xl font-bold">—</p>
+          <p id="overall-text" class="muted mt-1 text-sm">Checking the forecast…</p>
+        </div>
+        <a href="dashboard.html#ai-insights" class="lift inline-flex w-fit items-center gap-2 rounded-lg bg-emerald-400 px-5 py-2.5 text-sm font-bold text-[#062015] hover:bg-emerald-300">Get advice from AI Insights <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+
+    <!-- Risk cards -->
+    <section id="risks">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2 class="section-title">Risk assessment</h2>
+        <span class="muted text-xs">Rule-based · thresholds listed below</span>
+      </div>
+      <div id="risk-cards" class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"><p class="skeleton text-sm">Evaluating the forecast…</p></div>
+    </section>
+
+    <!-- 7-day grid -->
+    <section id="calendar">
+      <div class="mb-4"><h2 class="section-title">Seven days at a glance</h2></div>
+      <div class="card card-static p-5 sm:p-6">
+        <div class="hide-scrollbar overflow-x-auto">
+          <div id="risk-grid" class="min-w-[640px]"><p class="skeleton text-sm">Loading…</p></div>
+        </div>
+        <p class="muted mt-4 text-xs">Amber and red cells are days that cross the thresholds below. Blue marks days with useful rain.</p>
+      </div>
+    </section>
+
+    <!-- Thresholds -->
+    <section id="method">
+      <div class="mb-4"><h2 class="section-title">How ratings are decided</h2></div>
+      <div class="card card-static divide-y divide-white/10 overflow-hidden text-sm">
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_2.4fr] sm:gap-4 sm:p-5"><span class="font-bold">Heat stress</span><span class="muted">Moderate: a day at 35°C or above. High: 40°C or above, or three days at 38°C or above.</span></div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_2.4fr] sm:gap-4 sm:p-5"><span class="font-bold">Heavy rain / waterlogging</span><span class="muted">Moderate: 25 mm in a day or 40 mm over three days. High: 50 mm in a day or 80 mm over three days.</span></div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_2.4fr] sm:gap-4 sm:p-5"><span class="font-bold">Dry spell / drought stress</span><span class="muted">One point each for: under 10 mm in the last 14 days, under 10 mm forecast for 7 days, 10+ days without rain, low modelled soil moisture. 2 points is Moderate, 3 or more is High. This is a short-term dry-spell signal, not a seasonal drought forecast.</span></div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_2.4fr] sm:gap-4 sm:p-5"><span class="font-bold">Strong wind</span><span class="muted">Moderate: 40 km/h or more. High: 60 km/h or more.</span></div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_2.4fr] sm:gap-4 sm:p-5"><span class="font-bold">Cold / frost</span><span class="muted">Moderate: a night low of 2°C or below. High: 0°C or below.</span></div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_2.4fr] sm:gap-4 sm:p-5"><span class="font-bold">Humid, damp weather</span><span class="muted">Watch: average humidity of 80% or more over 48 hours with 5 mm or more of rain in the next 3 days. Never rated higher, because it is only a weather signal, not a disease detection.</span></div>
+      </div>
+    </section>
+
+    <!-- Sources -->
+    <section id="sources">
+      <div class="mb-4"><h2 class="section-title">Data sources</h2></div>
+      <div id="sources-list" class="card card-static divide-y divide-white/10 overflow-hidden"><p class="skeleton p-5 text-sm">Waiting for data…</p></div>
+      <p class="muted mt-4 text-xs leading-6">These ratings are guidance from weather-model data. They do not replace local advice from your agriculture office.</p>
+    </section>
+  </main>
+
+  <footer class="border-t border-white/10 bg-[#05080a] px-6 py-12 text-sm text-white/40 sm:px-10 lg:px-14">
+    <div class="mx-auto mb-8 grid max-w-[1600px] grid-cols-2 gap-8 md:grid-cols-4">
+      <div class="space-y-3">
+        <p class="serif mb-4 font-semibold tracking-[0.18em] text-white">BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI</p>
+        <p class="cursor-pointer hover:underline">Agritech Advisory</p>
+        <p class="cursor-pointer hover:underline">Emergency Logistics</p>
+        <p class="cursor-pointer hover:underline">Micro-location Engine</p>
+      </div>
+      <div class="space-y-3">
+        <p class="mb-4 font-medium text-white">Data Sources</p>
+        <p class="cursor-pointer hover:underline">Open-Meteo</p>
+        <p class="cursor-pointer hover:underline">NASA POWER</p>
+        <p class="cursor-pointer hover:underline">ISRO Bhuvan</p>
+        <p class="cursor-pointer hover:underline">Agmarknet</p>
+      </div>
+      <div class="space-y-3">
+        <p class="mb-4 font-medium text-white">Help</p>
+        <p class="cursor-pointer hover:underline">Account</p>
+        <p class="cursor-pointer hover:underline">Media Center</p>
+        <p class="cursor-pointer hover:underline">Privacy</p>
+      </div>
+      <div class="space-y-3">
+        <p class="mb-4 font-medium text-white">About</p>
+        <p class="cursor-pointer hover:underline">Hackathon Project</p>
+        <p class="cursor-pointer hover:underline">Terms of Use</p>
+      </div>
+    </div>
+    <div class="mx-auto max-w-[1600px] border-t border-white/10 pt-8 text-xs">
+      <p>© 2026 BHOOMI. Built for live demo robustness. No mock data generated.</p>
+    </div>
+  </footer>
+
+  <!-- SHARED SCRIPT (background / ripple / spotlight / location state; same as the other pages) -->
+  <script>
+  (() => {
+    const heroImg = document.getElementById('dynamic-hero-bg');
+    const BACKGROUNDS = { morning:'./morning5.jpg', evening:'./afternoon.png', night:'./night.png' };
+    let currentPeriod = null;
+    const periodFor = (h) => (h >= 6 && h < 11) ? 'morning' : (h >= 11 && h < 19) ? 'evening' : 'night';
+    function applyBackground() {
+      const period = periodFor(new Date().getHours());
+      if (period === currentPeriod) return;
+      const isFirst = currentPeriod === null;
+      currentPeriod = period;
+      const swap = () => {
+        heroImg.onload = () => { heroImg.classList.remove('is-swapping'); requestAnimationFrame(() => requestAnimationFrame(() => { heroImg.style.transition = ''; })); };
+        heroImg.onerror = () => { console.error('Background failed to load:', BACKGROUNDS[period]); heroImg.style.transition = ''; heroImg.classList.remove('is-swapping'); };
+        heroImg.dataset.period = period;
+        heroImg.src = BACKGROUNDS[period];
+      };
+      if (isFirst) { heroImg.style.transition = 'none'; swap(); }
+      else { heroImg.classList.add('is-swapping'); setTimeout(swap, 1000); }
+    }
+    applyBackground();
+    setInterval(applyBackground, 60 * 1000);
+
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const cv = document.getElementById('fx-click');
+      const ctx = cv.getContext('2d');
+      const drops = [];
+      let raf = 0, w = 0, h = 0;
+      const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+      const fit = () => {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      };
+      const onDown = (e) => { drops.push({ x:e.clientX, y:e.clientY, t:performance.now() }); if (!raf) raf = requestAnimationFrame(draw); };
+      function draw(now) {
+        ctx.clearRect(0, 0, w, h);
+        const maxR = w < 640 ? 100 : 150;
+        for (let d = drops.length - 1; d >= 0; d--) {
+          const age = now - drops[d].t;
+          if (age > 1700) { drops.splice(d, 1); continue; }
+          const { x, y } = drops[d];
+          const p0 = age / 280;
+          if (p0 < 1) { ctx.fillStyle = `rgba(214,255,247,${0.85 * (1 - p0)})`; ctx.beginPath(); ctx.arc(x, y, 8 * (1 - p0) + 1, 0, Math.PI * 2); ctx.fill(); }
+          for (let i = 0; i < 3; i++) {
+            const a = age - i * 150;
+            if (a < 0) continue;
+            const p = a / 1200;
+            if (p >= 1) continue;
+            const r = easeOut(p) * maxR * (1 - i * 0.2);
+            const alpha = (1 - p) * (0.6 - i * 0.14);
+            if (i === 0) {
+              const g = ctx.createRadialGradient(x, y, r * 0.55, x, y, r);
+              g.addColorStop(0, 'rgba(52,211,153,0)'); g.addColorStop(1, `rgba(52,211,153,${0.12 * (1 - p)})`);
+              ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.strokeStyle = `rgba(167,243,235,${alpha})`; ctx.lineWidth = 2.4 * (1 - p) + 0.6;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+        raf = drops.length ? requestAnimationFrame(draw) : 0;
+        if (!raf) ctx.clearRect(0, 0, w, h);
+      }
+      fit();
+      window.addEventListener('resize', fit);
+      window.addEventListener('pointerdown', onDown, { passive: true });
+    }
+
+    document.addEventListener('pointermove', (e) => {
+      const card = e.target.closest && e.target.closest('.card');
+      if (!card) return;
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    }, { passive: true });
+
+    /* Shared state: same keys the Dashboard writes */
+
+const REGION_KEY = 'bhoomi.region', CROP_KEY = 'bhoomi.crop', CROP_NAME_KEY = 'bhoomi.cropName';
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v ?? ''); } catch {} } };
+const validRegion = (v) => { if (typeof v !== 'string') return false; const [c, n] = v.split('|'); const [la, lo] = (c || '').split(',').map(Number); return !!n && Number.isFinite(la) && Number.isFinite(lo); };
+const hasRegion = () => validRegion(store.get(REGION_KEY));
+function region() { if (!hasRegion()) return null; const [c, name] = store.get(REGION_KEY).split('|'); const [lat, lon] = c.split(',').map(Number); return { lat, lon, name }; }
+const farm = () => store.get('bhoomi.farmName') || '';
+const crop = () => store.get(CROP_KEY) || '';
+const cropName = () => store.get(CROP_NAME_KEY) || (crop() ? crop().charAt(0).toUpperCase() + crop().slice(1) : '');
+const syncLabels = () => {
+  const r = region();
+  document.querySelectorAll('[data-region-name]').forEach((el) => { el.textContent = r ? r.name : 'No farm saved'; });
+  document.querySelectorAll('[data-crop-name]').forEach((el) => { el.textContent = cropName() || 'Not selected'; });
+  document.querySelectorAll('[data-region-hint]').forEach((el) => el.classList.toggle('hidden', !!r));
+};
+function setFarm(f) {
+  store.set(REGION_KEY, `${f.latitude},${f.longitude}|${f.district || f.farm_name || 'My Farm'}`);
+  store.set('bhoomi.farmName', f.farm_name || '');
+  if (f.crop && f.crop !== store.get(CROP_KEY)) store.set(CROP_NAME_KEY, '');
+  store.set(CROP_KEY, f.crop || '');
+  syncLabels();
+}
+window.BHOOMI = { region, farm, crop, cropName, hasRegion, setFarm };
+syncLabels();
+window.addEventListener('storage', (e) => { if ([REGION_KEY, CROP_KEY].includes(e.key)) { syncLabels(); window.dispatchEvent(new CustomEvent('bhoomi:region')); } });
+  })();
+  </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+  <script src="bhoomi-context.js"></script>
+
+  <!-- PAGE SCRIPT: RISK -->
+  <script>
+const $ = (id) => document.getElementById(id) || document.createElement('span');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const LV = BHOOMI_CTX.LEVELS;
+const BORDER = ['rgba(52,211,153,.22)', 'rgba(251,191,36,.45)', 'rgba(239,68,68,.5)'];
+const TXT = ['text-emerald-300', 'text-amber-300', 'text-red-300'];
+let loadToken = 0;
+
+function riskCard(r) {
+  return `<div class="card flex flex-col p-5" style="--bc:${BORDER[r.level]}">
+    <div class="mb-3 flex items-start justify-between gap-3">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider ${TXT[r.level]}">${esc(r.label)}</p>
+        <p class="serif mt-1 text-2xl font-bold">${LV[r.level]}${r.id === 'humid' && r.level ? ' · watch' : ''}</p>
+      </div>
+      <span class="pill l${r.level}">${r.level === 0 ? 'No concern' : r.level === 1 ? 'Watch' : 'Act soon'}</span>
+    </div>
+    <p class="text-base font-bold leading-snug">${esc(r.finding)}</p>
+    <ul class="muted mt-3 space-y-1 text-sm">${r.evidence.map((e) => `<li>• ${esc(e)}</li>`).join('')}</ul>
+    <p class="mt-3 text-sm text-white/85"><span class="font-bold text-emerald-300">Why it matters:</span> ${esc(r.why)}</p>
+    <div class="mt-4 rounded-xl border border-white/15 bg-white/[0.04] p-3 text-sm"><span class="font-bold text-emerald-300">What to do:</span> ${esc(r.action)}</div>
+    <p class="muted mt-auto pt-4 text-xs"><span class="chip">${esc(r.confidence.label)} confidence</span> <span class="ml-1">${esc(r.confidence.note)}</span></p>
+  </div>`;
+}
+
+function gridHTML(days) {
+  const row = (title, unit, f, cls) => `<div class="mb-2 grid items-center gap-2" style="grid-template-columns:6.5rem repeat(${days.length},minmax(0,1fr))">
+    <span class="text-sm font-bold text-white/85">${title}<span class="muted block text-xs font-medium">${unit}</span></span>${days.map((d) => `<div class="cell ${cls(d)}">${f(d)}</div>`).join('')}</div>`;
+  const head = `<div class="mb-2 grid gap-2" style="grid-template-columns:6.5rem repeat(${days.length},minmax(0,1fr))"><span></span>${days.map((d) => `<span class="text-center text-xs font-bold text-white/70">${esc(d.label)}</span>`).join('')}</div>`;
+  return head
+    + row('Heat', 'max °C', (d) => Math.round(d.tmax), (d) => d.tmax >= 40 ? 'c2' : d.tmax >= 35 ? 'c1' : 'c0')
+    + row('Rain', 'mm', (d) => d.rain >= 10 ? Math.round(d.rain) : d.rain.toFixed(1), (d) => d.rain >= 50 ? 'c2' : d.rain >= 25 ? 'c1' : d.rain >= 5 ? 'cw' : 'c0')
+    + row('Wind', 'max km/h', (d) => Math.round(d.wind ?? 0), (d) => (d.wind || 0) >= 60 ? 'c2' : (d.wind || 0) >= 40 ? 'c1' : 'c0');
+}
+
+function render(an) {
+  const act = an.risks.filter((r) => r.level >= 1).sort((a, b) => b.level - a.level || a.order - b.order);
+  $('overall-label').textContent = an.overall.label;
+  $('overall-label').className = 'serif text-3xl font-bold ' + (an.overall.key === 'attention' ? 'text-red-300' : an.overall.key === 'watch' ? 'text-amber-300' : 'text-emerald-300');
+  $('overall-text').textContent = act.length ? `Main concern: ${act[0].finding.charAt(0).toLowerCase()}${act[0].finding.slice(1)}.` : 'No heat, heavy-rain, dry-spell, wind or damp-weather risk is flagged for the next 7 days.';
+  $('risk-cards').innerHTML = [...an.risks].sort((a, b) => b.level - a.level || a.order - b.order).map(riskCard).join('');
+  $('risk-grid').innerHTML = gridHTML(an.weather.days);
+  const ic = { ok: 'text-emerald-300', stale: 'text-amber-200', missing: 'text-amber-200' };
+  $('sources-list').innerHTML = an.quality.map((q) => `<div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_2.4fr] sm:gap-4 sm:p-5"><span class="font-bold">${esc(q.source)}</span><span class="text-sm ${ic[q.status] || ''}">${esc(q.note)}</span></div>`).join('');
+  $('status').textContent = `Updated ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function fail(msg) {
+  $('overall-label').textContent = 'Unavailable'; $('overall-label').className = 'serif text-3xl font-bold text-amber-300';
+  $('overall-text').textContent = msg;
+  $('risk-cards').innerHTML = `<p class="text-sm text-amber-200">${esc(msg)}</p>`;
+  $('risk-grid').innerHTML = `<p class="text-sm text-amber-200">${esc(msg)}</p>`;
+  $('sources-list').innerHTML = `<p class="p-5 text-sm text-amber-200">${esc(msg)}</p>`;
+  $('status').textContent = 'Data unavailable';
+}
+async function syncFromDashboard() {
+  if (!window.sb) return;
+  const { data: { session } } = await window.sb.auth.getSession();
+  if (!session) { window.location.replace('login.html'); return false; }
+  const { data } = await window.sb.from('farms').select('*').eq('user_id', session.user.id).maybeSingle();
+  if (data) BHOOMI.setFarm(data);
+  return true;
+}
+async function loadAll() {
+  const token = ++loadToken;
+  $('today-date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  $('status').textContent = 'Loading…';
+    $('status').textContent = 'Loading…';
+  if ((await syncFromDashboard()) === false) return;
+  if (!BHOOMI.hasRegion()) {
+    fail('No farm saved yet. Open the Dashboard, click Add Your Farm and save a location.');
+    $('status').textContent = 'No farm saved';
+    return;
+  }
+  try {
+    const an = await BHOOMI_CTX.analyse(BHOOMI.region());
+    if (token !== loadToken) return;
+    render(an);
+  } catch (e) {
+    if (token !== loadToken) return;
+    console.error('BHOOMI risk failed:', e);
+    fail('Could not load the forecast right now. Please refresh or try again.');
+  }
+}
+window.addEventListener('bhoomi:region', loadAll);
+loadAll();
+  </script>
+</body>
+</html>

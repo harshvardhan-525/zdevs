@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="en" translate="no" class="h-full bg-[#05080a] scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#05080a" />
+  <meta name="google" content="notranslate" />
+  <title>BH∞MI · Weather</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="bhoomi-cache.js"></script>
+  <!-- ============================================================
+       SHARED DESIGN SYSTEM  (identical in dashboard.html and weather.html)
+       ============================================================ -->
+  <style>
+    :root { --leaf:#34d399; --leaf-soft:#a7f3d0; --card:rgba(10,18,16,.82); --line:rgba(255,255,255,.16); }
+    html { -webkit-text-size-adjust:100%; font-size:112.5%; scroll-padding-top:6rem; }
+    @media (min-width:1920px) { html { font-size:125%; } }
+    body { font-family:"Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-weight:500; }
+    .serif { font-family:"Fraunces", Georgia, serif; }
+
+    /* ---- Seamless page changes: navbar stays put, only the page content cross-fades ---- */
+    @view-transition { navigation: auto; }
+    #navbar { view-transition-name: site-nav; }
+    ::view-transition-group(site-nav) { animation: none; }
+    ::view-transition-old(site-nav)   { display: none; }
+    ::view-transition-new(site-nav)   { animation: none; }
+    ::view-transition-old(root) { animation: vtOut .18s ease both; }
+    ::view-transition-new(root) { animation: vtIn .35s ease both; }
+    @keyframes vtOut { to { opacity: 0; } }
+    @keyframes vtIn  { from { opacity: 0; } }
+
+    /* ---- Type scale ---- */
+    .font-light    { font-weight:500; }
+    .font-medium   { font-weight:600; }
+    .font-semibold { font-weight:700; }
+    h1, h2, h3     { letter-spacing:-.005em; }
+    .text-xs          { font-size:.85rem; line-height:1.3rem; }
+    .text-sm          { font-size:1rem;   line-height:1.55rem; }
+    .text-\[10px\]     { font-size:.8rem; }
+    .text-\[11px\]     { font-size:.8rem; }
+    .text-\[15px\]     { font-size:1rem; }
+
+    /* ---- Contrast for dim text and borders ---- */
+    .text-white\/30 { color:rgba(255,255,255,.55); }
+    .text-white\/35 { color:rgba(255,255,255,.60); }
+    .text-white\/40 { color:rgba(255,255,255,.66); }
+    .text-white\/50 { color:rgba(255,255,255,.74); }
+    .text-white\/60 { color:rgba(255,255,255,.82); }
+    .text-white\/70 { color:rgba(255,255,255,.90); }
+    .text-white\/80 { color:rgba(255,255,255,.94); }
+    .border-white\/10 { border-color:rgba(255,255,255,.18); }
+
+    .eyebrow       { color:var(--leaf); font-weight:700; font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; }
+    .section-title { font-size:1.55rem; line-height:2rem; font-weight:700; color:#fff; }
+    .muted         { color:rgba(255,255,255,.72); }
+
+    .hide-scrollbar::-webkit-scrollbar { display:none; }
+    .hide-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+    .fade-up { animation:fadeUp .8s cubic-bezier(.22,.61,.36,1) both; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+
+    /* ---- Page background (fixed, blurred, swaps with time of day) ---- */
+    .bg-shade {
+      background:
+        radial-gradient(120% 80% at 50% -10%, rgba(52,211,153,.10) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(5,8,10,.25) 0%, rgba(5,8,10,.55) 55%, rgba(5,8,10,.88) 100%);
+    }
+    .vignette { background:radial-gradient(120% 100% at 50% 30%, transparent 40%, rgba(0,0,0,.55) 100%); }
+    .grain {
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity:.05;
+    }
+    .hero-img { transform:scale(1.08); transition:opacity 1s ease; opacity:0; }
+    .hero-img[data-period="morning"] { filter:blur(7px) brightness(1.05) saturate(1.1); opacity:.9; }
+    .hero-img[data-period="evening"] { filter:blur(7px) brightness(.85) sepia(.15);     opacity:.85; }
+    .hero-img[data-period="night"]   { filter:blur(8px) brightness(.75) contrast(1.15); opacity:.85; }
+    .hero-img.is-swapping            { opacity:0 !important; }
+
+    /* ---- Navbar (identical look on every page, never changes on scroll) ---- */
+    #navbar {
+      background:rgba(5,8,10,.86);
+      -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .nav-link { position:relative; padding:.35rem 0; color:rgba(255,255,255,.86); font-weight:600; transition:color .25s ease; }
+    .nav-link::after {
+      content:""; position:absolute; left:0; right:0; bottom:-.05rem; height:2px; border-radius:2px;
+      background:linear-gradient(90deg,#34d399,#a7f3d0); transform:scaleX(0); transform-origin:left center;
+      transition:transform .35s cubic-bezier(.22,.61,.36,1);
+    }
+    .nav-link:hover, .nav-link:focus-visible, .nav-link[aria-current="page"] { color:#fff; }
+    .nav-link:hover::after, .nav-link:focus-visible::after, .nav-link[aria-current="page"]::after { transform:scaleX(1); }
+    .mobile-menu summary { list-style:none; }
+    .mobile-menu summary::-webkit-details-marker { display:none; }
+
+    /* ---- Wordmark ---- */
+    .wordmark { position:relative; }
+    .wordmark-infinity {
+      display:inline-block; margin:0 .015em; color:#34d399; -webkit-text-fill-color:#34d399;
+      background:none; -webkit-background-clip:initial; background-clip:initial;
+      font-family:"Manrope", sans-serif; font-size:1.12em; font-weight:600; letter-spacing:0; line-height:1; vertical-align:-.045em;
+    }
+    .wordmark-text {
+      display:inline-block;
+      background:linear-gradient(100deg,#fff 0%,#fff 36%,#6ee7b7 47%,#d1fae5 53%,#fff 64%,#fff 100%);
+      background-size:260% 100%; background-position:100% 0;
+      -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent;
+      transform-origin:left center; transition:transform .5s cubic-bezier(.22,.61,.36,1), filter .5s ease;
+    }
+    .wordmark::after {
+      content:""; position:absolute; left:.75rem; right:.75rem; bottom:.05rem; height:2px; border-radius:2px;
+      background:linear-gradient(90deg,#34d399,#a7f3d0 60%,transparent);
+      transform:scaleX(0); transform-origin:left center; transition:transform .6s cubic-bezier(.22,.61,.36,1);
+    }
+    .wordmark:hover .wordmark-text, .wordmark:focus-visible .wordmark-text {
+      transform:scale(1.04); filter:drop-shadow(0 0 14px rgba(52,211,153,.55));
+      animation:sheen 1.1s cubic-bezier(.4,0,.2,1) forwards;
+    }
+    .wordmark:hover::after, .wordmark:focus-visible::after { transform:scaleX(1); }
+    @keyframes sheen { to { background-position:0% 0; } }
+
+    /* ---- Cards: one look, one hover (lift + emerald glow + cursor spotlight) ---- */
+    .card {
+      position:relative;
+      background:var(--card);
+      border:1px solid var(--bc, var(--line));
+      border-radius:1rem;
+      -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+      transition:transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease, border-color .3s ease;
+    }
+    .card::before {
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:0;
+      background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%), rgba(52,211,153,.13), transparent 45%);
+      transition:opacity .3s ease;
+    }
+    .card:hover::before { opacity:1; }
+    .card:not(.card-static):hover {
+      transform:translateY(-4px) scale(1.02);
+      box-shadow:0 20px 40px -10px rgba(0,0,0,.8), 0 0 22px rgba(52,211,153,.12);
+      border-color:rgba(52,211,153,.45);
+      z-index:10;
+    }
+    .card-static:hover { border-color:rgba(52,211,153,.3); }
+
+    /* ---- Buttons, chips, form fields ---- */
+    .lift { transition:transform .25s ease, box-shadow .25s ease, background-color .25s ease, border-color .25s ease, color .25s ease; }
+    .lift:hover  { transform:translateY(-2px); box-shadow:0 8px 24px rgba(52,211,153,.18); }
+    .lift:active { transform:translateY(0); box-shadow:none; }
+    .glass { background:rgba(0,0,0,.4); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:.9rem; }
+    .field {
+      color:var(--leaf-soft); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.2);
+      border-radius:.6rem; padding:.4rem .7rem; outline:none;
+      transition:border-color .25s ease, box-shadow .25s ease, background-color .25s ease;
+    }
+    .field::placeholder { color:rgba(255,255,255,.5); }
+    .field:hover  { border-color:rgba(255,255,255,.4); }
+    .field:focus  { border-color:var(--leaf); box-shadow:0 0 0 3px rgba(52,211,153,.15); }
+    select.field option { background:#0a1210; color:#fff; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+    }
+  </style>
+
+  <style>
+/* ---- Weather page only: charts and small tiles ---- */
+.chart svg { width:100%; height:auto; display:block; overflow:visible; }
+.chart text { font-family:"Manrope", sans-serif; fill:rgba(255,255,255,.72); font-size:11px; font-weight:600; }
+.chart .bar { transition:opacity .2s ease, filter .2s ease; cursor:default; }
+.chart .bar:hover { opacity:.82; filter:drop-shadow(0 0 6px rgba(52,211,153,.65)); }
+.chart .dot { transition:r .2s ease; }
+.chart .dot:hover { r:6; }
+.tile {
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.14); border-radius:.85rem;
+  transition:border-color .25s ease, background-color .25s ease, transform .25s ease;
+}
+.tile:hover { border-color:rgba(52,211,153,.45); background:rgba(52,211,153,.07); transform:translateY(-2px); }
+.legend-dot { display:inline-block; width:.7rem; height:.7rem; border-radius:3px; margin-right:.4rem; vertical-align:-1px; }
+.skeleton { color:rgba(255,255,255,.5); }
+  </style>
+</head>
+
+<body class="min-h-full text-white antialiased selection:bg-emerald-400/30">
+
+  <!-- PAGE BACKGROUND -->
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#05080a]" aria-hidden="true">
+    <img id="dynamic-hero-bg" class="hero-img is-swapping absolute inset-0 h-full w-full object-cover object-center" alt="" />
+    <div class="absolute inset-0 bg-shade"></div>
+    <div class="absolute inset-0 vignette"></div>
+    <div class="absolute inset-0 grain"></div>
+  </div>
+
+  <!-- Click ripples -->
+  <canvas id="fx-click" class="pointer-events-none fixed inset-0 z-[60] h-full w-full" aria-hidden="true"></canvas>
+
+  <!-- ================= NAVBAR (identical on every page) =================
+       BH∞MI | Dashboard | Weather | Satellite | Risk | AI Insights | My Farm -->
+  <nav id="navbar" class="fixed top-0 z-50 flex w-full items-center justify-between px-6 py-4 sm:px-10 lg:px-14">
+    <div class="flex items-center gap-10">
+      <a href="dashboard.html" aria-label="BHOOMI home"
+         class="wordmark group relative -ml-3 inline-flex items-center rounded-xl px-3 py-1.5 pb-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70">
+        <span class="wordmark-text serif text-[1.3rem] font-semibold uppercase leading-none tracking-[0.22em] sm:text-[1.6rem]">
+          BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI
+        </span>
+      </a>
+
+      <div class="hidden items-center gap-7 text-sm lg:flex">
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
+        <a href="weather.html" class="nav-link" aria-current="page">Weather</a>
+        <a href="satellite.html" class="nav-link">Satellite</a>
+        <a href="risk.html" class="nav-link">Risk</a>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 text-sm">
+      <a href="dashboard.html#ai-insights" class="nav-link flex items-center gap-1 !text-emerald-400 hover:!text-emerald-300">
+        AI Insights <span class="ml-1 rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px]">New</span>
+      </a>
+      <a href="dashboard.html#farm" class="nav-link hidden sm:block">My Farm</a>
+
+      <details class="mobile-menu relative lg:hidden">
+        <summary class="lift cursor-pointer rounded-lg border border-white/20 px-3 py-1.5 font-semibold text-white/90">Menu</summary>
+        <div class="card card-static absolute right-0 mt-3 flex w-56 flex-col gap-3 p-4">
+          <a href="dashboard.html" class="nav-link w-fit">Dashboard</a>
+          <a href="weather.html" class="nav-link w-fit" aria-current="page">Weather</a>
+          <a href="dashboard.html#satellite" class="nav-link w-fit">Satellite</a>
+          <a href="dashboard.html#risk" class="nav-link w-fit">Risk</a>
+          <a href="dashboard.html#farm" class="nav-link w-fit">My Farm</a>
+        </div>
+      </details>
+
+      <a href="dashboard.html#farm" aria-label="My farm profile"
+         class="lift flex size-8 items-center justify-center rounded bg-emerald-600 text-xs font-bold ring-1 ring-white/20 hover:ring-emerald-400">F</a>
+    </div>
+  </nav>
+
+  <!-- ================= CONTENT ================= -->
+  <main class="relative z-10 mx-auto max-w-[1600px] space-y-12 px-6 pb-24 pt-28 sm:px-10 lg:px-14">
+
+    <!-- ===== Location bar (uses the location chosen on the Dashboard; no selector here) ===== -->
+        <section>
+      <div class="card card-static flex flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center">
+        <div>
+          <p class="text-sm font-bold text-white"><span data-region-name>Prayagraj</span>
+            <span class="muted ml-2 font-medium">· <span id="today-date">—</span> · Updated <span id="updated-time">—</span></span>
+          </p>
+          <p class="mt-1 text-sm font-bold text-white">
+            <span class="muted font-medium">Crop:</span> <span data-crop-name class="text-emerald-300">Not selected</span>
+          </p>
+          <p data-region-hint class="hidden mt-1 text-xs text-amber-200">No farm location saved yet, so this is showing a default. Set yours on the Dashboard.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <a href="dashboard.html#farm" class="lift inline-flex w-fit items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-sm font-bold text-emerald-300 hover:border-emerald-400/60 hover:text-emerald-200">Change location <span aria-hidden="true">→</span></a>
+          <a href="dashboard.html#crop" class="lift inline-flex w-fit items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-sm font-bold text-emerald-300 hover:border-emerald-400/60 hover:text-emerald-200">Change crop <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Current conditions ===== -->
+    <section id="current">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2 class="section-title">Current conditions</h2>
+        <span id="current-status" class="text-xs font-medium text-emerald-400">Loading live readings…</span>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="card p-5">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Temperature</p>
+          <p id="c-temp" class="text-4xl font-semibold text-white">--°C</p>
+          <p class="mt-2 text-xs text-white/40">Feels like <span id="c-feels" class="text-white/70">--°C</span></p>
+        </div>
+        <div class="card p-5">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Humidity</p>
+          <p id="c-hum" class="text-4xl font-semibold text-white">--%</p>
+          <p class="mt-2 text-xs text-white/40">Relative humidity near the surface</p>
+        </div>
+        <div class="card p-5">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Rainfall</p>
+          <p id="c-rain" class="text-4xl font-semibold text-white">-- mm</p>
+          <p class="mt-2 text-xs text-white/40">Precipitation, current hour</p>
+        </div>
+        <div class="card p-5">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Wind</p>
+          <p id="c-wind" class="text-4xl font-semibold text-white">-- km/h</p>
+          <p class="mt-2 text-xs text-white/40">Blowing from <span id="c-wind-dir" class="text-white/70">--</span></p>
+        </div>
+        <div class="card p-5">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Cloud cover</p>
+          <p id="c-cloud" class="text-4xl font-semibold text-white">--%</p>
+          <p id="c-cloud-note" class="mt-2 text-xs text-white/40">Share of the sky covered</p>
+        </div>
+        <div class="card p-5">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">UV index</p>
+          <p id="c-uv" class="text-4xl font-semibold text-white">--</p>
+          <p id="c-uv-note" class="mt-2 text-xs text-white/40">Modelled for the current hour</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 24-hour forecast ===== -->
+    <section id="hourly">
+      <div class="mb-4">
+        <h2 class="section-title">24-hour forecast</h2>
+      </div>
+      <div class="card card-static p-5 sm:p-6">
+        <div class="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-white/70">
+          <span><span class="legend-dot" style="background:#34d399"></span>Temperature (°C)</span>
+          <span><span class="legend-dot" style="background:#38bdf8"></span>Rain probability (%)</span>
+        </div>
+        <div class="hide-scrollbar overflow-x-auto">
+          <div id="hourly-chart" class="chart min-w-[860px]"><p class="skeleton text-sm">Loading hourly forecast…</p></div>
+        </div>
+        <div id="hourly-cards" class="hide-scrollbar mt-5 flex gap-3 overflow-x-auto pb-2 pt-1"></div>
+      </div>
+    </section>
+
+    <!-- ===== Seven-day forecast ===== -->
+    <section id="daily">
+      <div class="mb-4">
+        <h2 class="section-title">7-day forecast</h2>
+      </div>
+      <div class="card card-static mb-5 p-5 sm:p-6">
+        <p class="mb-3 text-sm font-bold text-white/80">Daily temperature range (°C)</p>
+        <div id="range-chart" class="chart"><p class="skeleton text-sm">Loading seven-day forecast…</p></div>
+      </div>
+      <div id="daily-cards" class="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7"></div>
+    </section>
+
+    <!-- ===== Rainfall intelligence ===== -->
+    <section id="rainfall">
+      <div class="mb-4">
+        <h2 class="section-title">Rainfall intelligence</h2>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="card p-5">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Last 7 days</p>
+          <p id="r-last7" class="text-4xl font-semibold text-white">-- mm</p>
+          <p class="mt-2 text-xs text-white/40">Modelled rainfall total</p>
+        </div>
+        <div class="card p-5">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Next 7 days</p>
+          <p id="r-next7" class="text-4xl font-semibold text-white">-- mm</p>
+          <p class="mt-2 text-xs text-white/40">Forecast total, including today</p>
+        </div>
+        <div class="card p-5">
+          <p id="r-mtd-label" class="mb-1 text-xs uppercase tracking-wider text-white/50">Month so far</p>
+          <p id="r-mtd" class="text-4xl font-semibold text-white">-- mm</p>
+          <p id="r-mtd-note" class="mt-2 text-xs text-white/40">Accumulation to yesterday</p>
+        </div>
+        <div class="card p-5">
+          <p class="mb-1 text-xs uppercase tracking-wider text-white/50">Deviation from normal</p>
+          <p id="r-dev" class="text-4xl font-semibold text-white">--</p>
+          <p id="r-dev-note" class="mt-2 text-xs text-white/40">Compared with the same days in past years</p>
+        </div>
+      </div>
+
+      <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <div class="card card-static p-5 sm:p-6">
+          <p class="mb-1 text-sm font-bold text-white/80">Daily rainfall · past 7 days and next 7 days (mm)</p>
+          <div class="mb-3 flex flex-wrap gap-x-5 text-xs text-white/70">
+            <span><span class="legend-dot" style="background:#38bdf8"></span>Past (modelled)</span>
+            <span><span class="legend-dot" style="background:#34d399"></span>Forecast</span>
+          </div>
+          <div id="rain-14-chart" class="chart"><p class="skeleton text-sm">Loading…</p></div>
+        </div>
+        <div class="card card-static p-5 sm:p-6">
+          <p class="mb-1 text-sm font-bold text-white/80">Monthly rainfall · this year vs historical average (mm)</p>
+          <div class="mb-3 flex flex-wrap gap-x-5 text-xs text-white/70">
+            <span><span class="legend-dot" style="background:#34d399"></span><span class="cur-year">This year</span></span>
+            <span><span class="legend-dot" style="background:rgba(255,255,255,.4)"></span>Historical average (<span id="normal-years">10-year</span>)</span>
+          </div>
+          <div id="rain-month-chart" class="chart"><p class="skeleton text-sm">Loading historical data…</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Agricultural weather insights ===== -->
+    <section id="insights">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <h2 class="section-title">Agricultural weather insights</h2>
+            <span id="insight-crop" class="muted text-xs"></span>
+      </div>
+      <div id="insight-cards" class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <p class="skeleton text-sm">Evaluating the forecast…</p>
+      </div>
+    </section>
+
+    <!-- ===== Historical climate patterns ===== -->
+    <section id="history">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2 class="section-title">Historical climate patterns</h2>
+        <span id="history-note" class="muted text-xs">Loading ERA5 history…</span>
+      </div>
+      <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <div class="card card-static p-5 sm:p-6">
+          <p class="mb-1 text-sm font-bold text-white/80">Monthly temperature trend (°C, daily mean)</p>
+          <div class="mb-3 flex flex-wrap gap-x-5 text-xs text-white/70">
+            <span><span class="legend-dot" style="background:#34d399"></span><span class="cur-year">This year</span></span>
+            <span><span class="legend-dot" style="background:rgba(255,255,255,.5)"></span>Historical average</span>
+          </div>
+          <div id="hist-temp-chart" class="chart"><p class="skeleton text-sm">Loading…</p></div>
+        </div>
+        <div class="card card-static p-5 sm:p-6">
+          <p class="mb-1 text-sm font-bold text-white/80">Average monthly rainfall (mm)</p>
+          <div class="mb-3 flex flex-wrap gap-x-5 text-xs text-white/70">
+            <span><span class="legend-dot" style="background:#38bdf8"></span>Historical average</span>
+          </div>
+          <div id="hist-rain-chart" class="chart"><p class="skeleton text-sm">Loading…</p></div>
+        </div>
+        <div class="card card-static p-5 sm:p-6">
+          <p class="mb-1 text-sm font-bold text-white/80">Seasonal rainfall · this year vs average (mm)</p>
+          <div class="mb-3 flex flex-wrap gap-x-5 text-xs text-white/70">
+            <span><span class="legend-dot" style="background:#34d399"></span><span class="cur-year">This year</span> (to date)</span>
+            <span><span class="legend-dot" style="background:rgba(255,255,255,.4)"></span>Historical average</span>
+          </div>
+          <div id="hist-season-chart" class="chart"><p class="skeleton text-sm">Loading…</p></div>
+        </div>
+        <div class="card card-static p-5 sm:p-6">
+          <p class="mb-1 text-sm font-bold text-white/80">Monsoon rainfall by year · June to September (mm)</p>
+          <div class="mb-3 flex flex-wrap gap-x-5 text-xs text-white/70">
+            <span><span class="legend-dot" style="background:#38bdf8"></span>Past years</span>
+            <span><span class="legend-dot" style="background:#34d399"></span><span class="cur-year">This year</span></span>
+            <span><span class="legend-dot" style="background:#fbbf24"></span>Average</span>
+          </div>
+          <div id="hist-monsoon-chart" class="chart"><p class="skeleton text-sm">Loading…</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Data sources ===== -->
+    <section id="sources">
+      <div class="mb-4">
+        <h2 class="section-title">Data sources</h2>
+      </div>
+      <div class="card card-static divide-y divide-white/10 overflow-hidden">
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_1.2fr_1.4fr] sm:gap-4 sm:p-5">
+          <span class="font-bold">Current weather</span><span class="muted text-sm">Open-Meteo</span>
+          <span id="src-current" class="text-sm text-emerald-300">Waiting for data…</span>
+        </div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_1.2fr_1.4fr] sm:gap-4 sm:p-5">
+          <span class="font-bold">Weather forecast</span><span class="muted text-sm">Open-Meteo forecast model</span>
+          <span id="src-forecast" class="text-sm text-emerald-300">Waiting for data…</span>
+        </div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_1.2fr_1.4fr] sm:gap-4 sm:p-5">
+          <span class="font-bold">Historical weather</span><span class="muted text-sm">Open-Meteo Historical Weather · ERA5</span>
+          <span id="src-history" class="text-sm text-emerald-300">Waiting for data…</span>
+        </div>
+        
+      </div>
+      <p class="muted mt-4 text-xs leading-6">Values are weather-model and reanalysis estimates for the selected district centre, not readings from a sensor on your farm.</p>
+    </section>
+  </main>
+
+  <!-- ================= FOOTER (identical on every page) ================= -->
+  <footer class="border-t border-white/10 bg-[#05080a] px-6 py-12 text-sm text-white/40 sm:px-10 lg:px-14">
+    <div class="mx-auto mb-8 grid max-w-[1600px] grid-cols-2 gap-8 md:grid-cols-4">
+      <div class="space-y-3">
+        <p class="serif mb-4 font-semibold tracking-[0.18em] text-white">BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI</p>
+        <p class="cursor-pointer hover:underline">Agritech Advisory</p>
+        <p class="cursor-pointer hover:underline">Emergency Logistics</p>
+        <p class="cursor-pointer hover:underline">Micro-location Engine</p>
+      </div>
+      <div class="space-y-3">
+        <p class="mb-4 font-medium text-white">Data Sources</p>
+        <p class="cursor-pointer hover:underline">Open-Meteo</p>
+        <p class="cursor-pointer hover:underline">NASA POWER</p>
+        <p class="cursor-pointer hover:underline">ISRO Bhuvan</p>
+        <p class="cursor-pointer hover:underline">Agmarknet</p>
+      </div>
+      <div class="space-y-3">
+        <p class="mb-4 font-medium text-white">Help</p>
+        <p class="cursor-pointer hover:underline">Account</p>
+        <p class="cursor-pointer hover:underline">Media Center</p>
+        <p class="cursor-pointer hover:underline">Privacy</p>
+      </div>
+      <div class="space-y-3">
+        <p class="mb-4 font-medium text-white">About</p>
+        <p class="cursor-pointer hover:underline">Hackathon Project</p>
+        <p class="cursor-pointer hover:underline">Terms of Use</p>
+      </div>
+    </div>
+    <div class="mx-auto max-w-[1600px] border-t border-white/10 pt-8 text-xs">
+      <p>© 2026 BHOOMI. Built for live demo robustness. No mock data generated.</p>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       SHARED SCRIPT  (same background / ripple / spotlight as dashboard.html)
+
+       SHARED LOCATION STATE (set on the Dashboard, read here)
+         localStorage 'bhoomi.region'   = "lat,lon|Name"
+         BHOOMI.region()                -> { lat, lon, name }
+         BHOOMI.setRegion(lat, lon, name) -> updates the state and fires 'bhoomi:region'
+       ============================================================ -->
+  <script>
+  (() => {
+    /* ---- Time-of-day background ---- */
+    const heroImg = document.getElementById('dynamic-hero-bg');
+    const BACKGROUNDS = { morning:'./morning5.jpg', evening:'./afternoon.png', night:'./night.png' };
+    let currentPeriod = null;
+    const periodFor = (h) => (h >= 6 && h < 11) ? 'morning' : (h >= 11 && h < 19) ? 'evening' : 'night';
+
+    function applyBackground() {
+      const period = periodFor(new Date().getHours());
+      if (period === currentPeriod) return;
+      const isFirst = currentPeriod === null;
+      currentPeriod = period;
+      const swap = () => {
+        heroImg.onload = () => {
+          heroImg.classList.remove('is-swapping');
+          requestAnimationFrame(() => requestAnimationFrame(() => { heroImg.style.transition = ''; }));
+        };
+        heroImg.onerror = () => {
+          console.error('Background failed to load:', BACKGROUNDS[period]);
+          heroImg.style.transition = '';
+          heroImg.classList.remove('is-swapping');
+        };
+        heroImg.dataset.period = period;
+        heroImg.src = BACKGROUNDS[period];
+      };
+      if (isFirst) { heroImg.style.transition = 'none'; swap(); }      // no fade on page load: keeps page changes seamless
+      else { heroImg.classList.add('is-swapping'); setTimeout(swap, 1000); }
+    }
+    applyBackground();
+    setInterval(applyBackground, 60 * 1000);
+
+    /* ---- Water-tap ripple on click ---- */
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const cv = document.getElementById('fx-click');
+      const ctx = cv.getContext('2d');
+      const drops = [];
+      let raf = 0, w = 0, h = 0;
+      const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+
+      const fit = () => {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      };
+      const onDown = (e) => {
+        drops.push({ x:e.clientX, y:e.clientY, t:performance.now() });
+        if (!raf) raf = requestAnimationFrame(draw);
+      };
+      function draw(now) {
+        ctx.clearRect(0, 0, w, h);
+        const maxR = w < 640 ? 100 : 150;
+        for (let d = drops.length - 1; d >= 0; d--) {
+          const age = now - drops[d].t;
+          if (age > 1700) { drops.splice(d, 1); continue; }
+          const { x, y } = drops[d];
+          const p0 = age / 280;
+          if (p0 < 1) {
+            ctx.fillStyle = `rgba(214,255,247,${0.85 * (1 - p0)})`;
+            ctx.beginPath(); ctx.arc(x, y, 8 * (1 - p0) + 1, 0, Math.PI * 2); ctx.fill();
+          }
+          for (let i = 0; i < 3; i++) {
+            const a = age - i * 150;
+            if (a < 0) continue;
+            const p = a / 1200;
+            if (p >= 1) continue;
+            const r = easeOut(p) * maxR * (1 - i * 0.2);
+            const alpha = (1 - p) * (0.6 - i * 0.14);
+            if (i === 0) {
+              const g = ctx.createRadialGradient(x, y, r * 0.55, x, y, r);
+              g.addColorStop(0, 'rgba(52,211,153,0)');
+              g.addColorStop(1, `rgba(52,211,153,${0.12 * (1 - p)})`);
+              ctx.fillStyle = g;
+              ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.strokeStyle = `rgba(167,243,235,${alpha})`;
+            ctx.lineWidth = 2.4 * (1 - p) + 0.6;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+        raf = drops.length ? requestAnimationFrame(draw) : 0;
+        if (!raf) ctx.clearRect(0, 0, w, h);
+      }
+      fit();
+      window.addEventListener('resize', fit);
+      window.addEventListener('pointerdown', onDown, { passive: true });
+    }
+
+    /* ---- Card hover spotlight follows the cursor ---- */
+    document.addEventListener('pointermove', (e) => {
+      const card = e.target.closest && e.target.closest('.card');
+      if (!card) return;
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    }, { passive: true });
+
+    /* ---- Shared region (read from the state set on the Dashboard) ---- */
+        /* ---- Shared state set on the Dashboard: region + crop ---- */
+    const REGION_KEY = 'bhoomi.region';
+    const CROP_KEY = 'bhoomi.crop';
+    const DEFAULT_REGION = '25.4358,81.8463|Prayagraj';
+
+    /* Indicative thresholds only; check local agronomy advice (KVK) before acting. */
+    const CROP_PROFILES = {
+      wheat:     { name:'Wheat',                heat:32, wetDay:40,  hum:80, wind:35, lowRain:5,  stage:'flowering and grain filling' },
+      rice:      { name:'Rice (Paddy)',         heat:35, wetDay:100, hum:85, wind:40, lowRain:15, stage:'flowering' },
+      maize:     { name:'Maize',                heat:35, wetDay:50,  hum:85, wind:35, lowRain:10, stage:'tasseling and silking' },
+      sugarcane: { name:'Sugarcane',            heat:38, wetDay:80,  hum:85, wind:30, lowRain:10, stage:'the grand growth phase' },
+      potato:    { name:'Potato',               heat:30, wetDay:40,  hum:80, wind:40, lowRain:8,  stage:'tuber bulking' },
+      mustard:   { name:'Mustard',              heat:30, wetDay:30,  hum:80, wind:40, lowRain:3,  stage:'flowering and pod filling' },
+      cotton:    { name:'Cotton',               heat:38, wetDay:50,  hum:85, wind:40, lowRain:10, stage:'flowering and boll formation' },
+      soybean:   { name:'Soybean',              heat:35, wetDay:50,  hum:85, wind:40, lowRain:10, stage:'flowering and pod setting' },
+      tomato:    { name:'Tomato',               heat:33, wetDay:40,  hum:80, wind:35, lowRain:10, stage:'flowering and fruit set' },
+      onion:     { name:'Onion',                heat:35, wetDay:40,  hum:80, wind:40, lowRain:8,  stage:'bulb formation' },
+      gram:      { name:'Gram (Chickpea)',      heat:32, wetDay:30,  hum:80, wind:40, lowRain:3,  stage:'flowering and pod filling' },
+      bajra:     { name:'Pearl Millet (Bajra)', heat:40, wetDay:60,  hum:85, wind:40, lowRain:8,  stage:'flowering' },
+    };
+
+    const store = {
+      get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+    };
+    const validRegion = (v) => {
+      if (typeof v !== 'string') return false;
+      const [coords, name] = v.split('|');
+      const [lat, lon] = (coords || '').split(',').map(Number);
+      return !!name && Number.isFinite(lat) && Number.isFinite(lon);
+    };
+    const hasRegion = () => validRegion(store.get(REGION_KEY));
+    const current = () => { const v = store.get(REGION_KEY); return validRegion(v) ? v : DEFAULT_REGION; };
+
+    function region() {
+      const [coords, name] = current().split('|');
+      const [lat, lon] = coords.split(',').map(Number);
+      return { lat, lon, name };
+    }
+    const farm = () => store.get('bhoomi.farmName') || '';
+    function crop() {
+      const k = store.get(CROP_KEY);
+      return CROP_PROFILES[k] ? { key: k, ...CROP_PROFILES[k] } : null;
+    }
+    function syncLabels() {
+      document.querySelectorAll('[data-region-name]').forEach((el) => { el.textContent = region().name; });
+      document.querySelectorAll('[data-crop-name]').forEach((el) => { el.textContent = crop() ? crop().name : 'Not selected'; });
+      document.querySelectorAll('[data-region-hint]').forEach((el) => { el.classList.toggle('hidden', hasRegion()); });
+    }
+    function setRegion(lat, lon, name) {
+      const v = `${lat},${lon}|${name}`;
+      if (!validRegion(v)) return;
+      store.set(REGION_KEY, v);
+      syncLabels();
+      window.dispatchEvent(new CustomEvent('bhoomi:region'));
+    }
+    window.BHOOMI = { region, farm, crop, hasRegion, setRegion };
+    syncLabels();
+
+    /* Region or crop changed in another tab (e.g. on the Dashboard) */
+    window.addEventListener('storage', (e) => {
+      if (e.key === REGION_KEY) { syncLabels(); window.dispatchEvent(new CustomEvent('bhoomi:region')); }
+      if (e.key === CROP_KEY)   { syncLabels(); window.dispatchEvent(new CustomEvent('bhoomi:crop')); }
+    });
+  })();
+  </script>
+
+  <!-- ================= PAGE SCRIPT: WEATHER ================= -->
+  <script>
+/* Returns a detached element when an id is absent, so optional labels never throw */
+const $ = (id) => document.getElementById(id) || document.createElement('span');
+const OM_URL = 'https://api.open-meteo.com/v1/forecast';
+const ARCH_URL = 'https://archive-api.open-meteo.com/v1/archive';
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_LONG = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SEASONS = [
+  { name: 'Winter',       months: [0, 1] },
+  { name: 'Pre-monsoon',  months: [2, 3, 4] },
+  { name: 'Monsoon',      months: [5, 6, 7, 8] },
+  { name: 'Post-monsoon', months: [9, 10, 11] },
+];
+const SKY = '#38bdf8', LEAF = '#34d399', AMBER = '#fbbf24', NORMAL_COL = 'rgba(255,255,255,.4)';
+const archiveCache = new Map();
+let loadToken = 0;
+
+/* ---------- helpers ---------- */
+const num = (n, d = 0) => (n == null || Number.isNaN(n)) ? '—' : Number(n).toFixed(d);
+const sum = (a) => a.reduce((s, v) => s + (v || 0), 0);
+const avg = (a) => { const v = a.filter((x) => x != null && !Number.isNaN(x)); return v.length ? sum(v) / v.length : null; };
+const pad2 = (n) => String(n).padStart(2, '0');
+const compass = (d) => ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(d / 22.5) % 16];
+const hourLabel = (t) => { const h = +t.slice(11, 13); return (h % 12 || 12) + (h < 12 ? ' AM' : ' PM'); };
+const dow = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short' });
+const dayLabel = (d, i) => i === 0 ? 'Today' : dow(d);
+const dateShort = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+const tickFmt = (v) => String(+v.toFixed(1));
+function niceMax(v) {
+  if (!(v > 0)) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  const m = v / p;
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p;
+}
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+function placeholder(el, msg, warn) {
+  el.innerHTML = `<p class="text-sm ${warn ? 'text-amber-200' : 'skeleton'}">${msg}</p>`;
+}
+
+/* ---------- SVG charts (no libraries) ---------- */
+function gridY(W, H, pad, lo, hi, ticks, fmt) {
+  const y = (v) => pad.t + (H - pad.t - pad.b) * (1 - (v - lo) / (hi - lo));
+  let g = '';
+  for (let i = 0; i <= ticks; i++) {
+    const v = lo + (hi - lo) * i / ticks;
+    g += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(255,255,255,.1)"/>` +
+         `<text x="${pad.l - 8}" y="${y(v) + 4}" text-anchor="end">${fmt(v)}</text>`;
+  }
+  return { g, y };
+}
+
+function barChart({ labels, series, unit = 'mm', W = 800, H = 260, hline = null }) {
+  const pad = { l: 44, r: 12, t: 14, b: 30 };
+  const all = series.flatMap((s) => s.values.filter((v) => v != null));
+  if (hline) all.push(hline.value);
+  const max = niceMax(Math.max(0, ...all));
+  const { g, y } = gridY(W, H, pad, 0, max, 4, tickFmt);
+  const n = labels.length, gw = (W - pad.l - pad.r) / n, k = series.length;
+  const bw = Math.min(30, (gw * 0.72) / k), gap = 2;
+  let bars = '', txt = '';
+  labels.forEach((lb, i) => {
+    const gx = pad.l + gw * i + gw / 2 - (k * bw + (k - 1) * gap) / 2;
+    series.forEach((s, j) => {
+      const v = s.values[i];
+      if (v == null) return;
+      const h = Math.max(v > 0 ? 2 : 0, (H - pad.t - pad.b) * v / max);
+      bars += `<rect class="bar" x="${gx + j * (bw + gap)}" y="${H - pad.b - h}" width="${bw}" height="${h}" rx="3" fill="${s.colors ? s.colors[i] : s.color}"><title>${lb} · ${s.name}: ${num(v, 1)} ${unit}</title></rect>`;
+    });
+    txt += `<text x="${pad.l + gw * i + gw / 2}" y="${H - 10}" text-anchor="middle">${lb}</text>`;
+  });
+  let hl = '';
+  if (hline) {
+    hl = `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(hline.value)}" y2="${y(hline.value)}" stroke="${hline.color}" stroke-width="1.6" stroke-dasharray="5 4"/>` +
+         `<text x="${W - pad.r}" y="${y(hline.value) - 6}" text-anchor="end" style="fill:${hline.color}">${hline.label}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}${bars}${hl}${txt}</svg>`;
+}
+
+function lineChart({ labels, series, unit = '°C', W = 800, H = 260 }) {
+  const pad = { l: 44, r: 16, t: 14, b: 30 };
+  const vals = series.flatMap((s) => s.values.filter((v) => v != null));
+  if (!vals.length) return '<p class="text-sm text-amber-200">No data available.</p>';
+  const lo = Math.floor(Math.min(...vals) - 2), hi = Math.ceil(Math.max(...vals) + 2);
+  const { g, y } = gridY(W, H, pad, lo, hi, 4, tickFmt);
+  const n = labels.length;
+  const x = (i) => pad.l + (W - pad.l - pad.r) * (i + 0.5) / n;
+  let paths = '', dots = '', txt = '';
+  series.forEach((s) => {
+    let d = '', pen = false;
+    s.values.forEach((v, i) => {
+      if (v == null) { pen = false; return; }
+      d += `${pen ? 'L' : 'M'}${x(i)} ${y(v)} `;
+      pen = true;
+      dots += `<circle class="dot" cx="${x(i)}" cy="${y(v)}" r="3.5" fill="${s.color}"><title>${labels[i]} · ${s.name}: ${num(v, 1)} ${unit}</title></circle>`;
+    });
+    paths += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"${s.dashed ? ' stroke-dasharray="6 5"' : ''}/>`;
+  });
+  labels.forEach((lb, i) => { txt += `<text x="${x(i)}" y="${H - 10}" text-anchor="middle">${lb}</text>`; });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}${paths}${dots}${txt}</svg>`;
+}
+
+function rangeChart(days) {
+  const W = 800, H = 280, pad = { l: 44, r: 16, t: 26, b: 30 };
+  const lo = Math.floor(Math.min(...days.map((d) => d.min)) - 3), hi = Math.ceil(Math.max(...days.map((d) => d.max)) + 3);
+  const { g, y } = gridY(W, H, pad, lo, hi, 4, tickFmt);
+  const n = days.length, gw = (W - pad.l - pad.r) / n;
+  let bars = '', txt = '';
+  days.forEach((d, i) => {
+    const cx = pad.l + gw * i + gw / 2;
+    bars += `<rect class="bar" x="${cx - 14}" y="${y(d.max)}" width="28" height="${Math.max(6, y(d.min) - y(d.max))}" rx="14" fill="url(#rg)"><title>${d.label}: ${num(d.min)}° to ${num(d.max)}°C</title></rect>` +
+            `<text x="${cx}" y="${y(d.max) - 7}" text-anchor="middle" style="fill:#fff">${num(d.max)}°</text>` +
+            `<text x="${cx}" y="${y(d.min) + 16}" text-anchor="middle">${num(d.min)}°</text>`;
+    txt += `<text x="${cx}" y="${H - 10}" text-anchor="middle">${d.label}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img"><defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${AMBER}"/><stop offset="1" stop-color="${LEAF}"/></linearGradient></defs>${g}${bars}${txt}</svg>`;
+}
+
+function hourlyChart(hrs) {
+  const W = 960, H = 260, pad = { l: 44, r: 44, t: 16, b: 30 };
+  const temps = hrs.map((h) => h.temp);
+  const lo = Math.floor(Math.min(...temps) - 2), hi = Math.ceil(Math.max(...temps) + 2);
+  const { g, y } = gridY(W, H, pad, lo, hi, 4, tickFmt);
+  const py = (p) => pad.t + (H - pad.t - pad.b) * (1 - p / 100);
+  const n = hrs.length;
+  const x = (i) => pad.l + (W - pad.l - pad.r) * (i + 0.5) / n;
+  let bars = '', txt = '', dots = '', d = '';
+  hrs.forEach((h, i) => {
+    const p = h.prob ?? 0;
+    bars += `<rect class="bar" x="${x(i) - 9}" y="${py(p)}" width="18" height="${Math.max(1, H - pad.b - py(p))}" rx="3" fill="${SKY}" fill-opacity=".55"><title>${h.label} · rain probability ${num(h.prob)}% · ${num(h.precip, 1)} mm</title></rect>`;
+    d += `${i ? 'L' : 'M'}${x(i)} ${y(h.temp)} `;
+    dots += `<circle class="dot" cx="${x(i)}" cy="${y(h.temp)}" r="3.5" fill="${LEAF}"><title>${h.label} · ${num(h.temp, 1)}°C</title></circle>`;
+    if (i % 2 === 0) txt += `<text x="${x(i)}" y="${H - 10}" text-anchor="middle">${h.label}</text>`;
+  });
+  let right = '';
+  [0, 50, 100].forEach((p) => { right += `<text x="${W - pad.r + 8}" y="${py(p) + 4}">${p}%</text>`; });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}${bars}<path d="${d}" fill="none" stroke="${LEAF}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>${dots}${right}${txt}</svg>`;
+}
+
+/* ---------- data ---------- */
+function fetchForecast(lat, lon) {
+  const p = new URLSearchParams({
+    latitude: lat, longitude: lon,
+    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,wind_speed_10m,wind_direction_10m,cloud_cover',
+    hourly: 'temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,wind_speed_10m,uv_index',
+    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant',
+    past_days: 7, forecast_days: 7, timezone: 'auto',
+  });
+  return getJSON(`${OM_URL}?${p}`);
+}
+function fetchArchive(lat, lon, todayStr) {
+  const Y = +todayStr.slice(0, 4);
+  const end = new Date(todayStr + 'T00:00:00Z');
+  end.setUTCDate(end.getUTCDate() - 6);                       // ERA5 lags real time by a few days
+  const endStr = end.toISOString().slice(0, 10);
+  const key = `${lat},${lon},${endStr}`;
+  if (!archiveCache.has(key)) {
+    const p = new URLSearchParams({
+      latitude: lat, longitude: lon, start_date: `${Y - 10}-01-01`, end_date: endStr,
+      daily: 'temperature_2m_mean,precipitation_sum', timezone: 'auto',
+    });
+    archiveCache.set(key, getJSON(`${ARCH_URL}?${p}`).catch((e) => { archiveCache.delete(key); throw e; }));
+  }
+  return archiveCache.get(key);
+}
+
+
+
+
+/* ---------- crop-aware agricultural insights ---------- */
+let lastInsight = null;
+
+function renderInsights() {
+  if (!lastInsight) return;
+  const { days, hum48, lastRain, nextRain } = lastInsight;
+  const c = BHOOMI.crop();
+  const p = { heat: 35, wetDay: 50, hum: 80, wind: 40, lowRain: 5, stage: 'sensitive growth stages', ...(c || {}) };
+  const who = c ? c.name : 'crops';
+
+  $('insight-crop').textContent = c
+    ? `Tuned for ${c.name} · indicative thresholds`
+    : 'General thresholds · select a crop on the Dashboard for crop-specific checks';
+
+  const hotIdx = days.reduce((b, d, i) => d.max > days[b].max ? i : b, 0);
+  const wetIdx = days.reduce((b, d, i) => d.rain > days[b].rain ? i : b, 0);
+  const windIdx = days.reduce((b, d, i) => d.wind > days[b].wind ? i : b, 0);
+
+  const rules = [
+    { title: 'High temperature', on: days[hotIdx].max >= p.heat,
+      detail: `Highest forecast ${num(days[hotIdx].max)}°C on ${days[hotIdx].label} (flag at ${p.heat}°C or more${c ? ' for ' + c.name : ''})`,
+      impl: `Increased evaporation; ${who} can suffer heat stress, especially during ${p.stage}.` },
+    { title: 'Low rainfall', on: lastRain < p.lowRain && nextRain < p.lowRain,
+      detail: `${num(lastRain, 1)} mm in the last 7 days · ${num(nextRain, 1)} mm forecast for the next 7 (flag below ${p.lowRain} mm in both)`,
+      impl: `Possible soil-moisture deficit${c ? ' for ' + c.name : ''}, especially in light soils.` },
+    { title: 'Heavy rainfall forecast', on: days[wetIdx].rain >= p.wetDay,
+      detail: `Wettest day ${num(days[wetIdx].rain, 1)} mm on ${days[wetIdx].label} (flag at ${p.wetDay} mm or more in a day)`,
+      impl: `Potential waterlogging${c ? ' around ' + c.name : ''} in poorly drained fields.` },
+    { title: 'High humidity', on: hum48 != null && hum48 >= p.hum,
+      detail: `Average ${num(hum48)}% over the next 48 hours (flag at ${p.hum}% or more)`,
+      impl: `Conditions may favour fungal diseases${c ? ' in ' + c.name : ''}.` },
+    { title: 'Strong winds', on: days[windIdx].wind >= p.wind,
+      detail: `Strongest ${num(days[windIdx].wind)} km/h on ${days[windIdx].label} (flag at ${p.wind} km/h or more)`,
+      impl: `Possible lodging or physical damage${c ? ' to ' + c.name : ' to crops'}.` },
+  ];
+
+  $('insight-cards').innerHTML = rules.map((r) => `
+    <div class="card p-5" style="${r.on ? '--bc:rgba(251,191,36,.4)' : ''}">
+      <div class="mb-3 flex items-start justify-between gap-3">
+        <p class="text-xs font-semibold uppercase tracking-wider ${r.on ? 'text-amber-300' : 'text-white/60'}">Observation</p>
+        <span class="rounded-full border px-2.5 py-0.5 text-xs font-bold ${r.on ? 'border-amber-300/25 bg-amber-300/10 text-amber-200' : 'border-white/15 bg-white/10 text-white/60'}">${r.on ? 'Indicated by forecast' : 'Not indicated now'}</span>
+      </div>
+      <p class="text-xl font-bold">${r.title}</p>
+      <p class="muted mt-2 text-sm">${r.detail}</p>
+      <p class="mt-3 border-t border-white/10 pt-3 text-sm text-white/85"><span class="font-bold text-emerald-300">Possible implication:</span> ${r.impl}</p>
+    </div>`).join('');
+}
+window.addEventListener('bhoomi:crop', renderInsights);
+
+
+/* ---------- forecast rendering ---------- */
+function renderForecast(f) {
+  const cur = f.current, H = f.hourly, D = f.daily;
+  const todayStr = cur.time.slice(0, 10);
+  const di = D.time.indexOf(todayStr);
+  let hi = H.time.indexOf(cur.time.slice(0, 13) + ':00');
+  if (hi < 0) hi = Math.max(0, H.time.findIndex((t) => t >= cur.time));
+
+  /* current conditions */
+  const uv = H.uv_index?.[hi];
+  const uvCat = uv == null ? '—' : uv < 3 ? 'Low' : uv < 6 ? 'Moderate' : uv < 8 ? 'High' : uv < 11 ? 'Very high' : 'Extreme';
+  const cloud = cur.cloud_cover;
+  const cloudCat = cloud == null ? '—' : cloud < 20 ? 'Mostly clear' : cloud < 50 ? 'Partly cloudy' : cloud < 85 ? 'Mostly cloudy' : 'Overcast';
+  $('c-temp').textContent = `${num(cur.temperature_2m, 1)}°C`;
+  $('c-feels').textContent = `${num(cur.apparent_temperature, 1)}°C`;
+  $('c-hum').textContent = `${num(cur.relative_humidity_2m)}%`;
+  $('c-rain').textContent = `${num(cur.precipitation, 1)} mm`;
+  $('c-wind').textContent = `${num(cur.wind_speed_10m, 1)} km/h`;
+  $('c-wind-dir').textContent = cur.wind_direction_10m == null ? '—' : `${compass(cur.wind_direction_10m)} (${Math.round(cur.wind_direction_10m)}°)`;
+  $('c-cloud').textContent = `${num(cloud)}%`;
+  $('c-cloud-note').textContent = cloudCat;
+  $('c-uv').textContent = num(uv, 1);
+  $('c-uv-note').textContent = `${uvCat} · modelled for this hour`;
+  $('current-status').textContent = `Open-Meteo model time ${cur.time.replace('T', ' ')}`;
+  $('updated-time').textContent = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+  /* next 24 hours */
+  const hrs = [];
+  for (let i = hi; i < Math.min(H.time.length, hi + 24); i++) {
+    hrs.push({
+      label: hourLabel(H.time[i]), temp: H.temperature_2m[i], prob: H.precipitation_probability[i],
+      precip: H.precipitation[i], hum: H.relative_humidity_2m[i], wind: H.wind_speed_10m[i],
+    });
+  }
+  $('hourly-chart').innerHTML = hourlyChart(hrs);
+  $('hourly-cards').innerHTML = hrs.map((h) => `
+    <div class="tile min-w-[7.6rem] shrink-0 p-3 text-center">
+      <p class="text-xs font-bold text-white/70">${h.label}</p>
+      <p class="mt-1 text-xl font-bold">${num(h.temp)}°</p>
+      <p class="mt-1 text-xs text-sky-300">Rain ${num(h.prob)}%</p>
+      <p class="text-xs text-white/60">${num(h.precip, 1)} mm</p>
+      <p class="text-xs text-white/60">Humidity ${num(h.hum)}%</p>
+      <p class="text-xs text-white/60">Wind ${num(h.wind)} km/h</p>
+    </div>`).join('');
+
+  /* daily humidity from hourly (mean per date) */
+  const humBy = {};
+  H.time.forEach((t, i) => { const d = t.slice(0, 10); (humBy[d] ||= []).push(H.relative_humidity_2m[i]); });
+
+  /* seven days */
+  const days = [];
+  for (let i = di; i < Math.min(D.time.length, di + 7); i++) {
+    days.push({
+      date: D.time[i], label: dayLabel(D.time[i], i - di), max: D.temperature_2m_max[i], min: D.temperature_2m_min[i],
+      rain: D.precipitation_sum[i], prob: D.precipitation_probability_max[i], hum: avg(humBy[D.time[i]] || []),
+      wind: D.wind_speed_10m_max[i], dir: D.wind_direction_10m_dominant[i],
+    });
+  }
+  $('range-chart').innerHTML = rangeChart(days);
+  $('daily-cards').innerHTML = days.map((d) => `
+    <div class="card p-4">
+      <p class="text-sm font-bold">${d.label}</p>
+      <p class="text-xs text-white/50">${dateShort(d.date)}</p>
+      <p class="mt-2 text-2xl font-bold">${num(d.max)}° <span class="text-base font-semibold text-white/60">/ ${num(d.min)}°</span></p>
+      <div class="mt-3 space-y-1 text-xs text-white/70">
+        <p>Rain <span class="font-bold text-sky-300">${num(d.rain, 1)} mm</span></p>
+        <p>Chance <span class="font-bold text-white">${num(d.prob)}%</span></p>
+        <p>Humidity <span class="font-bold text-white">${num(d.hum)}%</span></p>
+        <p>Wind <span class="font-bold text-white">${num(d.wind)} km/h ${d.dir == null ? '' : compass(d.dir)}</span></p>
+      </div>
+    </div>`).join('');
+
+  /* rainfall: last 7 / next 7 / 14-day chart */
+  const past = [], fut = [];
+  for (let i = di - 7; i < di; i++) if (i >= 0) past.push({ d: D.time[i], v: D.precipitation_sum[i] });
+  days.forEach((d) => fut.push({ d: d.date, v: d.rain }));
+  const lastRain = sum(past.map((p) => p.v)), nextRain = sum(fut.map((p) => p.v));
+  $('r-last7').textContent = `${num(lastRain, 1)} mm`;
+  $('r-next7').textContent = `${num(nextRain, 1)} mm`;
+  const all14 = past.concat(fut);
+  $('rain-14-chart').innerHTML = barChart({
+    labels: all14.map((p) => dow(p.d) + ' ' + (+p.d.slice(8, 10))),
+    series: [{ name: 'Rainfall', values: all14.map((p) => p.v), colors: all14.map((_, i) => i < past.length ? SKY : LEAF) }],
+  });
+
+  /* agricultural insights */
+   /* agricultural insights (re-rendered whenever the crop changes) */
+  lastInsight = { days, hum48: avg(H.relative_humidity_2m.slice(hi, hi + 48)), lastRain, nextRain };
+  renderInsights();
+
+  $('src-current').textContent = `Live · model time ${cur.time.replace('T', ' ')}`;
+  $('src-forecast').textContent = `Live · fetched ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+  return { todayStr, di, D };
+}
+
+/* ---------- history rendering ---------- */
+function renderHistory(f, a, ctx) {
+  const { todayStr, D } = ctx;
+  const Y = +todayStr.slice(0, 4), M = +todayStr.slice(5, 7) - 1, Dd = +todayStr.slice(8, 10);
+  document.querySelectorAll('.cur-year').forEach((el) => { el.textContent = String(Y); });
+
+  const rain = new Map();
+  a.daily.time.forEach((t, i) => { if (a.daily.precipitation_sum[i] != null) rain.set(t, a.daily.precipitation_sum[i]); });
+  D.time.forEach((t, i) => { if (t < todayStr && !rain.has(t) && D.precipitation_sum[i] != null) rain.set(t, D.precipitation_sum[i]); });
+
+  const mr = {}, mtList = {};
+  for (const [t, v] of rain) {
+    const y = +t.slice(0, 4), m = +t.slice(5, 7) - 1;
+    (mr[y] ||= Array(12).fill(0))[m] += v;
+  }
+  a.daily.time.forEach((t, i) => {
+    const v = a.daily.temperature_2m_mean[i];
+    if (v == null) return;
+    const y = +t.slice(0, 4), m = +t.slice(5, 7) - 1;
+    ((mtList[y] ||= Array.from({ length: 12 }, () => []))[m]).push(v);
+  });
+
+  const normalYears = [];
+  for (let y = Y - 10; y < Y; y++) if (mr[y]) normalYears.push(y);
+  $('normal-years').textContent = `${normalYears.length}-year`;
+  const normRain = MONTHS.map((_, m) => avg(normalYears.map((y) => mr[y][m])));
+  const normTemp = MONTHS.map((_, m) => avg(normalYears.map((y) => avg(mtList[y]?.[m] || []))));
+  const curRain = MONTHS.map((_, m) => (m > M || !mr[Y]) ? null : mr[Y][m]);
+  const curTemp = MONTHS.map((_, m) => (m > M || !mtList[Y]) ? null : avg(mtList[Y][m]));
+
+  /* month so far vs same days in past years */
+  const key = (y, m, d) => `${y}-${pad2(m + 1)}-${pad2(d)}`;
+  let actual = 0, normals = [];
+  for (let d = 1; d < Dd; d++) actual += rain.get(key(Y, M, d)) || 0;
+  normalYears.forEach((y) => { let s = 0; for (let d = 1; d < Dd; d++) s += rain.get(key(y, M, d)) || 0; normals.push(s); });
+  const normMtd = avg(normals);
+  $('r-mtd-label').textContent = `${MONTHS_LONG[M]} so far`;
+  if (Dd > 1) {
+    $('r-mtd').textContent = `${num(actual, 1)} mm`;
+    $('r-mtd-note').textContent = `Accumulation, 1–${Dd - 1} ${MONTHS[M]}`;
+    if (normMtd != null) {
+      const diff = actual - normMtd;
+      const pct = normMtd >= 1 ? diff / normMtd * 100 : null;
+      const state = pct == null ? (Math.abs(diff) < 2 ? 'Near normal' : diff > 0 ? 'Wetter than normal' : 'Drier than normal')
+                  : Math.abs(pct) <= 20 ? 'Near normal' : pct > 0 ? 'Wetter than normal' : 'Drier than normal';
+      const col = state === 'Near normal' ? 'text-white' : state.startsWith('Wetter') ? 'text-sky-300' : 'text-amber-300';
+      $('r-dev').className = `text-4xl font-semibold ${col}`;
+      $('r-dev').textContent = pct == null ? `${diff >= 0 ? '+' : ''}${num(diff, 1)} mm` : `${pct >= 0 ? '+' : ''}${num(pct)}%`;
+      $('r-dev-note').textContent = `${state} · normal ${num(normMtd, 1)} mm for the same days`;
+    }
+  } else {
+    $('r-mtd').textContent = '— mm';
+    $('r-mtd-note').textContent = 'The month has just begun';
+    $('r-dev').textContent = '—';
+  }
+
+  $('rain-month-chart').innerHTML = barChart({
+    labels: MONTHS,
+    series: [
+      { name: 'Historical average', color: NORMAL_COL, values: normRain },
+      { name: `${Y}`, color: LEAF, values: curRain },
+    ],
+  });
+
+  /* history section */
+  $('hist-temp-chart').innerHTML = lineChart({
+    labels: MONTHS,
+    series: [
+      { name: 'Historical average', color: 'rgba(255,255,255,.55)', values: normTemp, dashed: true },
+      { name: `${Y}`, color: LEAF, values: curTemp },
+    ],
+  });
+  $('hist-rain-chart').innerHTML = barChart({
+    labels: MONTHS,
+    series: [{ name: 'Historical average', color: SKY, values: normRain }],
+  });
+
+  const seasonSum = (y, months) => mr[y] ? sum(months.filter((m) => y !== Y || m <= M).map((m) => mr[y][m])) : null;
+  $('hist-season-chart').innerHTML = barChart({
+    labels: SEASONS.map((s) => s.name),
+    series: [
+      { name: 'Historical average', color: NORMAL_COL, values: SEASONS.map((s) => avg(normalYears.map((y) => seasonSum(y, s.months)))) },
+      { name: `${Y} to date`, color: LEAF, values: SEASONS.map((s) => seasonSum(Y, s.months)) },
+    ],
+  });
+
+  const years = normalYears.concat(mr[Y] ? [Y] : []);
+  const monsoon = years.map((y) => seasonSum(y, [5, 6, 7, 8]));
+  const monsoonAvg = avg(normalYears.map((y) => seasonSum(y, [5, 6, 7, 8])));
+  $('hist-monsoon-chart').innerHTML = barChart({
+    labels: years.map((y) => String(y).slice(2).padStart(2, "'")),
+    series: [{ name: 'June–September rainfall', values: monsoon, colors: years.map((y) => y === Y ? LEAF : SKY) }],
+    hline: monsoonAvg == null ? null : { value: monsoonAvg, color: AMBER, label: `Avg ${num(monsoonAvg)} mm` },
+  });
+
+  const lastDay = a.daily.time[a.daily.time.length - 1];
+  $('history-note').textContent = `ERA5 via Open-Meteo · ${Y - 10}–${lastDay}`;
+  $('src-history').textContent = `ERA5 reanalysis · data through ${lastDay}`;
+}
+
+/* ---------- orchestration ---------- */
+function failForecast(msg) {
+  ['hourly-chart', 'range-chart', 'rain-14-chart'].forEach((id) => placeholder($(id), msg, true));
+  placeholder($('insight-cards'), msg, true);
+  $('current-status').textContent = 'Weather data unavailable';
+  $('src-current').textContent = 'Unavailable'; $('src-forecast').textContent = 'Unavailable';
+}
+function failHistory(msg) {
+  ['rain-month-chart', 'hist-temp-chart', 'hist-rain-chart', 'hist-season-chart', 'hist-monsoon-chart'].forEach((id) => placeholder($(id), msg, true));
+  $('history-note').textContent = 'Historical data unavailable';
+  $('src-history').textContent = 'Unavailable';
+}
+
+async function loadAll() {
+  const token = ++loadToken;
+  const { lat, lon } = BHOOMI.region();
+  $('today-date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  $('current-status').textContent = 'Loading live readings…';
+  $('history-note').textContent = 'Loading ERA5 history…';
+
+  const fp = fetchForecast(lat, lon);
+  let f, ctx;
+  try {
+    f = await fp;
+    if (token !== loadToken) return;
+    ctx = renderForecast(f);
+  } catch (err) {
+    if (token !== loadToken) return;
+    console.error('BHOOMI forecast failed:', err);
+    failForecast('Could not load the forecast right now. Please refresh or try again.');
+    failHistory('Historical comparison needs the current forecast, which is unavailable.');
+    return;
+  }
+
+  try {
+    const a = await fetchArchive(lat, lon, ctx.todayStr);
+    if (token !== loadToken) return;
+    renderHistory(f, a, ctx);
+  } catch (err) {
+    if (token !== loadToken) return;
+    console.error('BHOOMI history failed:', err);
+    failHistory('Could not load historical weather right now. Please refresh to try again.');
+  }
+}
+
+window.addEventListener('bhoomi:region', loadAll);
+loadAll();
+  </script>
+</body>
+</html>

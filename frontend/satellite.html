@@ -1,0 +1,1831 @@
+<!doctype html>
+<html lang="en" translate="no" class="h-full bg-[#05080a] scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#05080a" />
+  <meta name="google" content="notranslate" />
+  <title>BH∞MI · Satellite</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="bhoomi-cache.js"></script>
+  <!-- Map + raster libraries (no API keys needed by any of them) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+
+  <!-- ============================================================
+       SHARED DESIGN SYSTEM  (identical in dashboard.html, weather.html, satellite.html)
+       ============================================================ -->
+  <style>
+    :root { --leaf:#34d399; --leaf-soft:#a7f3d0; --card:rgba(10,18,16,.82); --line:rgba(255,255,255,.16); }
+    html { -webkit-text-size-adjust:100%; font-size:112.5%; scroll-padding-top:6rem; }
+    @media (min-width:1920px) { html { font-size:125%; } }
+    body { font-family:"Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-weight:500; }
+    .serif { font-family:"Fraunces", Georgia, serif; }
+
+    /* ---- Seamless page changes: navbar stays put, only the page content cross-fades ---- */
+    @view-transition { navigation: auto; }
+    #navbar { view-transition-name: site-nav; }
+    ::view-transition-group(site-nav) { animation: none; }
+    ::view-transition-old(site-nav)   { display: none; }
+    ::view-transition-new(site-nav)   { animation: none; }
+    ::view-transition-old(root) { animation: vtOut .18s ease both; }
+    ::view-transition-new(root) { animation: vtIn .35s ease both; }
+    @keyframes vtOut { to { opacity: 0; } }
+    @keyframes vtIn  { from { opacity: 0; } }
+
+    /* ---- Type scale ---- */
+    .font-light    { font-weight:500; }
+    .font-medium   { font-weight:600; }
+    .font-semibold { font-weight:700; }
+    h1, h2, h3     { letter-spacing:-.005em; }
+    .text-xs          { font-size:.85rem; line-height:1.3rem; }
+    .text-sm          { font-size:1rem;   line-height:1.55rem; }
+    .text-\[10px\]     { font-size:.8rem; }
+    .text-\[11px\]     { font-size:.8rem; }
+    .text-\[15px\]     { font-size:1rem; }
+
+    /* ---- Contrast for dim text and borders ---- */
+    .text-white\/30 { color:rgba(255,255,255,.55); }
+    .text-white\/35 { color:rgba(255,255,255,.60); }
+    .text-white\/40 { color:rgba(255,255,255,.66); }
+    .text-white\/50 { color:rgba(255,255,255,.74); }
+    .text-white\/60 { color:rgba(255,255,255,.82); }
+    .text-white\/70 { color:rgba(255,255,255,.90); }
+    .text-white\/80 { color:rgba(255,255,255,.94); }
+    .border-white\/10 { border-color:rgba(255,255,255,.18); }
+
+    .eyebrow       { color:var(--leaf); font-weight:700; font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; }
+    .section-title { font-size:1.55rem; line-height:2rem; font-weight:700; color:#fff; }
+    .muted         { color:rgba(255,255,255,.72); }
+
+    .hide-scrollbar::-webkit-scrollbar { display:none; }
+    .hide-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+    .fade-up { animation:fadeUp .8s cubic-bezier(.22,.61,.36,1) both; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+
+    /* ---- Page background (fixed, blurred, swaps with time of day) ---- */
+    .bg-shade {
+      background:
+        radial-gradient(120% 80% at 50% -10%, rgba(52,211,153,.10) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(5,8,10,.25) 0%, rgba(5,8,10,.55) 55%, rgba(5,8,10,.88) 100%);
+    }
+    .vignette { background:radial-gradient(120% 100% at 50% 30%, transparent 40%, rgba(0,0,0,.55) 100%); }
+    .grain {
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity:.05;
+    }
+    .hero-img { transform:scale(1.08); transition:opacity 1s ease; opacity:0; }
+    .hero-img[data-period="morning"] { filter:blur(7px) brightness(1.05) saturate(1.1); opacity:.9; }
+    .hero-img[data-period="evening"] { filter:blur(7px) brightness(.85) sepia(.15);     opacity:.85; }
+    .hero-img[data-period="night"]   { filter:blur(8px) brightness(.75) contrast(1.15); opacity:.85; }
+    .hero-img.is-swapping            { opacity:0 !important; }
+
+    /* ---- Navbar (identical look on every page, never changes on scroll) ---- */
+    #navbar {
+      background:rgba(5,8,10,.86);
+      -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .nav-link { position:relative; padding:.35rem 0; color:rgba(255,255,255,.86); font-weight:600; transition:color .25s ease; }
+    .nav-link::after {
+      content:""; position:absolute; left:0; right:0; bottom:-.05rem; height:2px; border-radius:2px;
+      background:linear-gradient(90deg,#34d399,#a7f3d0); transform:scaleX(0); transform-origin:left center;
+      transition:transform .35s cubic-bezier(.22,.61,.36,1);
+    }
+    .nav-link:hover, .nav-link:focus-visible, .nav-link[aria-current="page"] { color:#fff; }
+    .nav-link:hover::after, .nav-link:focus-visible::after, .nav-link[aria-current="page"]::after { transform:scaleX(1); }
+    .mobile-menu summary { list-style:none; }
+    .mobile-menu summary::-webkit-details-marker { display:none; }
+
+    /* ---- Wordmark ---- */
+    .wordmark { position:relative; }
+    .wordmark-infinity {
+      display:inline-block; margin:0 .015em; color:#34d399; -webkit-text-fill-color:#34d399;
+      background:none; -webkit-background-clip:initial; background-clip:initial;
+      font-family:"Manrope", sans-serif; font-size:1.12em; font-weight:600; letter-spacing:0; line-height:1; vertical-align:-.045em;
+    }
+    .wordmark-text {
+      display:inline-block;
+      background:linear-gradient(100deg,#fff 0%,#fff 36%,#6ee7b7 47%,#d1fae5 53%,#fff 64%,#fff 100%);
+      background-size:260% 100%; background-position:100% 0;
+      -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent;
+      transform-origin:left center; transition:transform .5s cubic-bezier(.22,.61,.36,1), filter .5s ease;
+    }
+    .wordmark::after {
+      content:""; position:absolute; left:.75rem; right:.75rem; bottom:.05rem; height:2px; border-radius:2px;
+      background:linear-gradient(90deg,#34d399,#a7f3d0 60%,transparent);
+      transform:scaleX(0); transform-origin:left center; transition:transform .6s cubic-bezier(.22,.61,.36,1);
+    }
+    .wordmark:hover .wordmark-text, .wordmark:focus-visible .wordmark-text {
+      transform:scale(1.04); filter:drop-shadow(0 0 14px rgba(52,211,153,.55));
+      animation:sheen 1.1s cubic-bezier(.4,0,.2,1) forwards;
+    }
+    .wordmark:hover::after, .wordmark:focus-visible::after { transform:scaleX(1); }
+    @keyframes sheen { to { background-position:0% 0; } }
+
+    /* ---- Cards: one look, one hover (lift + emerald glow + cursor spotlight) ---- */
+    .card {
+      position:relative;
+      background:var(--card);
+      border:1px solid var(--bc, var(--line));
+      border-radius:1rem;
+      -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+      transition:transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease, border-color .3s ease;
+    }
+    .card::before {
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:0;
+      background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%), rgba(52,211,153,.13), transparent 45%);
+      transition:opacity .3s ease;
+    }
+    .card:hover::before { opacity:1; }
+    .card:not(.card-static):hover {
+      transform:translateY(-4px) scale(1.02);
+      box-shadow:0 20px 40px -10px rgba(0,0,0,.8), 0 0 22px rgba(52,211,153,.12);
+      border-color:rgba(52,211,153,.45);
+      z-index:10;
+    }
+    .card-static:hover { border-color:rgba(52,211,153,.3); }
+
+    /* ---- Buttons, chips, form fields ---- */
+    .lift { transition:transform .25s ease, box-shadow .25s ease, background-color .25s ease, border-color .25s ease, color .25s ease; }
+    .lift:hover  { transform:translateY(-2px); box-shadow:0 8px 24px rgba(52,211,153,.18); }
+    .lift:active { transform:translateY(0); box-shadow:none; }
+    .glass { background:rgba(0,0,0,.4); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:.9rem; }
+    .field {
+      color:var(--leaf-soft); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.2);
+      border-radius:.6rem; padding:.4rem .7rem; outline:none;
+      transition:border-color .25s ease, box-shadow .25s ease, background-color .25s ease;
+    }
+    .field::placeholder { color:rgba(255,255,255,.5); }
+    .field:hover  { border-color:rgba(255,255,255,.4); }
+    .field:focus  { border-color:var(--leaf); box-shadow:0 0 0 3px rgba(52,211,153,.15); }
+    select.field option { background:#0a1210; color:#fff; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+    }
+  </style>
+
+  <style>
+/* ---- Satellite page only ---- */
+.map-wrap { position:relative; isolation:isolate; overflow:hidden; border-radius:.85rem; border:1px solid rgba(255,255,255,.14); }
+.leaflet-container { background:#0a1210; font-family:"Manrope", sans-serif; }
+.leaflet-container a { color:#34d399; }
+.leaflet-control-attribution { background:rgba(5,8,10,.7) !important; color:rgba(255,255,255,.6) !important; }
+.leaflet-bar a { background:rgba(10,18,16,.9); color:#fff; border-color:rgba(255,255,255,.18); }
+.leaflet-bar a:hover { background:#34d399; color:#062015; }
+.leaflet-tooltip { background:rgba(10,18,16,.95); color:#fff; border:1px solid rgba(52,211,153,.4); box-shadow:none; font-weight:700; }
+.leaflet-tooltip-top:before { border-top-color:rgba(52,211,153,.4); }
+.px { image-rendering:pixelated; image-rendering:crisp-edges; }
+/* keyless fallback basemap (only used if the Esri tiles fail) */
+.osm-dark { filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
+
+.seg { display:inline-flex; gap:.25rem; padding:.25rem; background:rgba(0,0,0,.6); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:.75rem; }
+.seg button { padding:.3rem .75rem; border-radius:.55rem; font-weight:700; font-size:.85rem; color:rgba(255,255,255,.85); transition:background-color .2s ease, color .2s ease; }
+.seg button:hover:not(:disabled) { color:#fff; background:rgba(255,255,255,.1); }
+.seg button[aria-pressed="true"] { background:#34d399; color:#062015; }
+.seg button:disabled { opacity:.4; cursor:not-allowed; }
+
+.map-note { position:absolute; left:50%; bottom:4.5rem; transform:translateX(-50%); z-index:1100; max-width:90%; text-align:center; padding:.55rem 1rem; font-size:.9rem; font-weight:700; color:#fde68a; background:rgba(5,8,10,.88); border:1px solid rgba(251,191,36,.35); border-radius:.75rem; }
+.map-note.info { color:#a7f3d0; border-color:rgba(52,211,153,.35); }
+.map-legend { position:absolute; left:.75rem; z-index:1000; max-width:calc(100% - 1.5rem); padding:.5rem .75rem; font-size:.8rem; line-height:1.35rem; color:rgba(255,255,255,.9); background:rgba(5,8,10,.78); border:1px solid rgba(255,255,255,.16); border-radius:.7rem; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+.map-legend span.sw { display:inline-block; width:.7rem; height:.7rem; border-radius:3px; margin-right:.4rem; vertical-align:-1px; }
+.legend-dot { display:inline-block; width:.7rem; height:.7rem; border-radius:3px; margin-right:.4rem; vertical-align:-1px; }
+
+input[type=range].cmp { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:6px; background:linear-gradient(90deg, rgba(56,189,248,.6), rgba(52,211,153,.9)); outline:none; }
+input[type=range].cmp::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; border:3px solid #34d399; cursor:pointer; }
+input[type=range].cmp::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#fff; border:3px solid #34d399; cursor:pointer; }
+input[type=range].cmp:disabled { opacity:.4; }
+
+.chart svg { width:100%; height:auto; display:block; overflow:visible; }
+.chart text { font-family:"Manrope", sans-serif; fill:rgba(255,255,255,.72); font-size:11px; font-weight:600; }
+.chart .dot { transition:r .2s ease; }
+.chart .dot:hover { r:6; }
+.skeleton { color:rgba(255,255,255,.5); }
+.chip { display:inline-block; border-radius:999px; padding:.1rem .6rem; font-size:.8rem; font-weight:700; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08); color:rgba(255,255,255,.85); white-space:nowrap; }
+.chip.ok  { color:#a7f3d0; background:rgba(52,211,153,.12); border-color:rgba(52,211,153,.35); }
+.chip.sky { color:#bae6fd; background:rgba(56,189,248,.12); border-color:rgba(56,189,248,.35); }
+.chip.warn{ color:#fde68a; background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); }
+
+/* tidy 3-column stat row (Mean NDVI / Change / Mean NDVI) so numbers never collide */
+.stat-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.75rem; align-items:start; text-align:center; }
+.stat-grid > div { min-width:0; }
+.stat-num { font-family:"Fraunces", Georgia, serif; font-weight:700; font-size:clamp(1.15rem, 1.5vw, 1.55rem); line-height:1.1; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.stat-label { margin-top:.35rem; font-size:.8rem; line-height:1.25; color:rgba(255,255,255,.7); }
+  </style>
+</head>
+
+<body class="min-h-full text-white antialiased selection:bg-emerald-400/30">
+
+  <!-- PAGE BACKGROUND -->
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#05080a]" aria-hidden="true">
+    <img id="dynamic-hero-bg" class="hero-img is-swapping absolute inset-0 h-full w-full object-cover object-center" alt="" />
+    <div class="absolute inset-0 bg-shade"></div>
+    <div class="absolute inset-0 vignette"></div>
+    <div class="absolute inset-0 grain"></div>
+  </div>
+
+  <!-- Click ripples -->
+  <canvas id="fx-click" class="pointer-events-none fixed inset-0 z-[60] h-full w-full" aria-hidden="true"></canvas>
+
+  <!-- ================= NAVBAR (identical on every page) =================
+       BH∞MI | Dashboard | Weather | Satellite | Risk | AI Insights | My Farm -->
+  <nav id="navbar" class="fixed top-0 z-50 flex w-full items-center justify-between px-6 py-4 sm:px-10 lg:px-14">
+    <div class="flex items-center gap-10">
+      <a href="dashboard.html" aria-label="BHOOMI home"
+         class="wordmark group relative -ml-3 inline-flex items-center rounded-xl px-3 py-1.5 pb-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70">
+        <span class="wordmark-text serif text-[1.3rem] font-semibold uppercase leading-none tracking-[0.22em] sm:text-[1.6rem]">
+          BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI
+        </span>
+      </a>
+
+      <div class="hidden items-center gap-7 text-sm lg:flex">
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
+        <a href="weather.html" class="nav-link">Weather</a>
+        <a href="satellite.html" class="nav-link" aria-current="page">Satellite</a>
+        <a href="risk.html" class="nav-link">Risk</a>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 text-sm">
+      <a href="dashboard.html#ai-insights" class="nav-link flex items-center gap-1 !text-emerald-400 hover:!text-emerald-300">
+        AI Insights <span class="ml-1 rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px]">New</span>
+      </a>
+      <a href="dashboard.html#farm" class="nav-link hidden sm:block">My Farm</a>
+
+      <details class="mobile-menu relative lg:hidden">
+        <summary class="lift cursor-pointer rounded-lg border border-white/20 px-3 py-1.5 font-semibold text-white/90">Menu</summary>
+        <div class="card card-static absolute right-0 mt-3 flex w-56 flex-col gap-3 p-4">
+          <a href="dashboard.html" class="nav-link w-fit">Dashboard</a>
+          <a href="weather.html" class="nav-link w-fit">Weather</a>
+          <a href="satellite.html" class="nav-link w-fit" aria-current="page">Satellite</a>
+          <a href="dashboard.html#risk" class="nav-link w-fit">Risk</a>
+          <a href="dashboard.html#farm" class="nav-link w-fit">My Farm</a>
+        </div>
+      </details>
+
+      <a href="dashboard.html#farm" aria-label="My farm profile"
+         class="lift flex size-8 items-center justify-center rounded bg-emerald-600 text-xs font-bold ring-1 ring-white/20 hover:ring-emerald-400">F</a>
+    </div>
+  </nav>
+
+  <!-- ================= CONTENT ================= -->
+  <main class="relative z-10 mx-auto max-w-[1600px] space-y-12 px-6 pb-24 pt-28 sm:px-10 lg:px-14">
+
+    <!-- ===== Location bar (location comes from the Dashboard; no selector here) ===== -->
+        <section>
+      <div class="card card-static flex flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center">
+        <div>
+          <p class="text-sm font-bold text-white"><span data-region-name>Prayagraj</span>
+            <span class="muted ml-2 font-medium">· <span id="coords">—</span> · <span id="sat-status" class="text-emerald-300">Starting…</span></span>
+          </p>
+          <p class="mt-1 text-sm font-bold text-white">
+            <span class="muted font-medium">Crop:</span> <span data-crop-name class="text-emerald-300">Not selected</span>
+          </p>
+          <p data-region-hint class="hidden mt-1 text-xs text-amber-200">No farm location saved yet, so this is showing a default. Set yours on the Dashboard.</p>
+          <p class="muted mt-1 text-xs">Point-based analysis: a <span id="aoi-size">3 × 3 km</span> window around the selected point, not a farm boundary. Results describe the whole window, not an individual field.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <a href="dashboard.html#farm" class="lift inline-flex w-fit shrink-0 items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-sm font-bold text-emerald-300 hover:border-emerald-400/60 hover:text-emerald-200">Change location <span aria-hidden="true">→</span></a>
+          <a href="dashboard.html#crop" class="lift inline-flex w-fit shrink-0 items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-sm font-bold text-emerald-300 hover:border-emerald-400/60 hover:text-emerald-200">Change crop <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 1. Satellite imagery ===== -->
+    <section id="imagery">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2 class="section-title">Satellite imagery</h2>
+        <span class="muted text-xs">Sentinel-2 L2A · 10 m · via Earth Search (AWS)</span>
+      </div>
+      <div class="grid grid-cols-1 gap-5 xl:grid-cols-[1.75fr_1fr]">
+        <div class="card card-static p-3">
+          <div class="map-wrap">
+            <div id="map-img" class="h-[520px] w-full sm:h-[600px]"></div>
+            <div class="absolute left-3 top-3 z-[1000]">
+              <div class="seg" role="group" aria-label="Imagery layer">
+                <button type="button" data-img-view="tc" aria-pressed="true">True colour</button>
+                <button type="button" data-img-view="ndvi" aria-pressed="false">NDVI</button>
+              </div>
+            </div>
+            <div id="legend-img" class="map-legend hidden" style="bottom:5.2rem"></div>
+            <div class="absolute bottom-3 left-3 z-[1000] w-[min(26rem,calc(100%-9rem))] rounded-xl border border-white/15 bg-black/70 px-3 py-2 backdrop-blur">
+              <div class="mb-1 flex items-center justify-between gap-2 text-xs font-bold">
+                <button type="button" id="cmp-prev-btn" class="text-sky-300 hover:text-sky-200">Previous <span id="cmp-prev-date">—</span></button>
+                <button type="button" id="cmp-latest-btn" class="text-emerald-300 hover:text-emerald-200">Latest <span id="cmp-latest-date">—</span></button>
+              </div>
+              <input id="cmp" class="cmp" type="range" min="0" max="100" value="100" disabled aria-label="Blend between previous and latest observation" />
+            </div>
+            <div id="note-img" class="map-note hidden"></div>
+          </div>
+          <p id="img-caption" class="muted px-1 pt-3 text-xs">Searching for Sentinel-2 scenes…</p>
+        </div>
+
+        <div class="card card-static flex flex-col gap-5 p-5 sm:p-6">
+          <div id="img-banner" class="hidden rounded-xl border px-4 py-3 text-sm font-semibold"></div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="eyebrow mb-1 !text-emerald-300">Latest usable</p>
+              <p id="obs-latest-date" class="text-2xl font-bold">—</p>
+              <p id="obs-latest-meta" class="muted mt-1 text-xs">—</p>
+            </div>
+            <div>
+              <p class="eyebrow mb-1 !text-sky-300">Previous usable</p>
+              <p id="obs-prev-date" class="text-2xl font-bold">—</p>
+              <p id="obs-prev-meta" class="muted mt-1 text-xs">—</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="mb-2 text-sm font-bold text-white/80">Recent passes over this location</p>
+            <div id="timeline" class="space-y-3"><p class="skeleton text-sm">Loading…</p></div>
+            <p class="muted mt-3 text-xs">Cloud % is measured over the analysed window from the Sentinel-2 scene classification (clouds, thin cirrus, shadow). Passes above <span id="cloud-limit">20</span>% are skipped.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 2. Vegetation health ===== -->
+    <section id="vegetation">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2 class="section-title">Vegetation health</h2>
+        <span class="muted text-xs">NDVI from Sentinel-2 B08 (NIR) and B04 (red) · 10 m · cloud and shadow masked</span>
+      </div>
+      <div class="grid grid-cols-1 gap-5 xl:grid-cols-[1.75fr_1fr]">
+        <div class="card card-static p-3">
+          <div class="map-wrap">
+            <div id="map-veg" class="h-[480px] w-full sm:h-[560px]"></div>
+            <div class="absolute left-3 top-3 z-[1000]">
+              <div class="seg" role="group" aria-label="Vegetation layer">
+                <button type="button" data-veg-view="latest" aria-pressed="true">Latest NDVI</button>
+                <button type="button" data-veg-view="previous" aria-pressed="false">Previous NDVI</button>
+                <button type="button" data-veg-view="change" aria-pressed="false">Change</button>
+              </div>
+            </div>
+            <div id="legend-veg" class="map-legend" style="bottom:.75rem"></div>
+            <div id="note-veg" class="map-note hidden"></div>
+          </div>
+        </div>
+
+        <div class="card card-static flex flex-col gap-5 p-5 sm:p-6">
+          <div>
+            <p class="mb-3 text-sm font-bold text-white/80">Vegetation activity across the window</p>
+            <div id="veg-bars" class="space-y-5"><p class="skeleton text-sm">Waiting for imagery…</p></div>
+          </div>
+          <div id="veg-means" class="hidden"></div>
+          <div class="border-t border-white/10 pt-4">
+            <p class="mb-1 text-sm font-bold text-white/80">What the change indicates</p>
+            <p id="veg-text" class="text-sm leading-6 text-white/85">—</p>
+          </div>
+          <p class="muted mt-auto border-t border-white/10 pt-4 text-xs leading-5">NDVI measures how much green, photosynthesising canopy a pixel contains. It is not a diagnosis of crop health: crop type, growth stage, sowing and harvest dates, irrigation and soil colour all change it.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 3. Soil intelligence ===== -->
+    <section id="soil">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2 class="section-title">Soil intelligence</h2>
+        <span id="soil-sub" class="muted text-xs">Modelled estimate + mapped dataset · no sensor on this farm</span>
+      </div>
+      <div class="card card-static overflow-hidden">
+        <!-- Moisture -->
+        <div class="grid grid-cols-1 gap-6 p-5 sm:p-6 xl:grid-cols-[1.4fr_1fr]">
+          <div>
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p class="text-sm font-bold text-white/80">Soil moisture · last 14 days (m³/m³)</p>
+              <span class="chip warn">Model estimate</span>
+            </div>
+            <div class="mb-2 flex flex-wrap gap-x-5 text-xs text-white/70">
+              <span><span class="legend-dot" style="background:#38bdf8"></span><span id="m-shallow-label">Shallow layer</span></span>
+              <span><span class="legend-dot" style="background:#34d399"></span><span id="m-root-label">Root-zone layer</span></span>
+            </div>
+            <div id="moist-chart" class="chart"><p class="skeleton text-sm">Loading soil moisture…</p></div>
+          </div>
+          <div class="flex flex-col">
+            <p class="mb-3 text-sm font-bold text-white/80">Moisture by depth · now</p>
+            <div id="moist-depth" class="space-y-3"></div>
+            <p id="moist-text" class="mt-4 text-sm leading-6 text-white/85"></p>
+            <p id="moist-src" class="muted mt-auto pt-4 text-xs leading-5">Open-Meteo weather-model soil moisture for the grid cell containing the point (typically a few km wide). It is a simulation, not a sensor reading.</p>
+          </div>
+        </div>
+
+        <!-- Mapped properties (hidden automatically when SoilGrids is unreachable) -->
+        <div id="soil-mapped" class="grid grid-cols-1 divide-y divide-white/10 border-t border-white/10 xl:grid-cols-3 xl:divide-x xl:divide-y-0">
+          <div class="p-5 sm:p-6">
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p class="text-sm font-bold text-white/80">Texture · sand / silt / clay</p>
+              <span class="chip sky">Mapped</span>
+            </div>
+            <div id="soil-texture"><p class="skeleton text-sm">Loading SoilGrids…</p></div>
+          </div>
+          <div class="p-5 sm:p-6">
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p class="text-sm font-bold text-white/80">Soil pH (0–30 cm)</p>
+              <span class="chip sky">Mapped</span>
+            </div>
+            <div id="soil-ph"><p class="skeleton text-sm">Loading SoilGrids…</p></div>
+          </div>
+          <div class="p-5 sm:p-6">
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p class="text-sm font-bold text-white/80">Organic carbon (0–30 cm)</p>
+              <span class="chip sky">Mapped</span>
+            </div>
+            <div id="soil-soc"><p class="skeleton text-sm">Loading SoilGrids…</p></div>
+          </div>
+        </div>
+        <p id="soil-foot" class="muted border-t border-white/10 px-5 py-4 text-xs leading-5 sm:px-6">Texture, pH and organic carbon come from ISRIC SoilGrids 2.0: 250 m machine-learning maps predicted from soil-profile samples around the world. They are regional predictions, not laboratory measurements from this farm. A soil test gives the real values.</p>
+      </div>
+    </section>
+
+
+        <!-- ===== Site conditions ===== -->
+    <section id="site">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2 class="section-title">Site conditions</h2>
+        <span class="muted text-xs">Elevation · soil temperature · water balance · Open-Meteo model</span>
+      </div>
+      <div id="site-cards" class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4"><p class="skeleton text-sm">Loading…</p></div>
+    </section>
+
+
+
+    <!-- ===== 4. Land cover & changes ===== -->
+    <section id="landcover">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2 class="section-title">Land cover &amp; changes</h2>
+        <span id="cover-sub" class="muted text-xs">ESA WorldCover (10 m, reference year) · Sentinel-2 scene classification for changes</span>
+      </div>
+      <div class="grid grid-cols-1 gap-5 xl:grid-cols-[1.75fr_1fr]">
+        <div class="card card-static p-3">
+          <div class="map-wrap">
+            <div id="map-cover" class="h-[480px] w-full sm:h-[560px]"></div>
+            <div class="absolute left-3 top-3 z-[1000]">
+              <div class="seg" role="group" aria-label="Land cover layer">
+                <button type="button" data-cover-view="cover" aria-pressed="true">Land cover</button>
+                <button type="button" data-cover-view="change" aria-pressed="false">Vegetation / bare change</button>
+              </div>
+            </div>
+            <div id="legend-cover" class="map-legend" style="bottom:.75rem"></div>
+            <div id="note-cover" class="map-note hidden"></div>
+          </div>
+        </div>
+
+        <div class="card card-static flex flex-col gap-5 p-5 sm:p-6">
+
+          <!-- WorldCover composition (hidden automatically when WorldCover is unreachable) -->
+          <div id="cover-comp">
+            <div class="mb-3 flex items-center justify-between gap-2">
+              <p class="text-sm font-bold text-white/80">What the window is made of</p>
+              <span id="wc-year" class="chip">—</span>
+            </div>
+            <div id="cover-bars" class="space-y-2"><p class="skeleton text-sm">Loading land cover…</p></div>
+          </div>
+          <div id="state-wrap" class="border-t border-white/10 pt-4">
+            <p class="mb-3 text-sm font-bold text-white/80">Surface state on each observation</p>
+            <div id="state-bars" class="space-y-5"><p class="skeleton text-sm">Waiting for imagery…</p></div>
+          </div>
+          <div class="border-t border-white/10 pt-4">
+            <p class="mb-1 text-sm font-bold text-white/80">What changed</p>
+            <p id="cover-text" class="text-sm leading-6 text-white/85">—</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Data sources ===== -->
+    <section id="sources">
+      <div class="mb-4"><h2 class="section-title">Data sources</h2></div>
+      <div class="card card-static divide-y divide-white/10 overflow-hidden">
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_1.4fr_1.4fr] sm:gap-4 sm:p-5">
+          <span class="font-bold">Imagery &amp; NDVI</span><span class="muted text-sm">Sentinel-2 L2A (ESA / Copernicus) · Earth Search STAC · 10 m</span>
+          <span id="src-s2" class="text-sm text-white/70">Waiting…</span>
+        </div>
+        <div id="row-wc" class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_1.4fr_1.4fr] sm:gap-4 sm:p-5">
+          <span class="font-bold">Land cover</span><span class="muted text-sm">ESA WorldCover · 10 m</span>
+          <span id="src-wc" class="text-sm text-white/70">Waiting…</span>
+        </div>
+        <div id="row-soil" class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_1.4fr_1.4fr] sm:gap-4 sm:p-5">
+          <span class="font-bold">Soil properties</span><span class="muted text-sm">ISRIC SoilGrids 2.0 · 250 m</span>
+          <span id="src-soil" class="text-sm text-white/70">Waiting…</span>
+        </div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_1.4fr_1.4fr] sm:gap-4 sm:p-5">
+          <span class="font-bold">Soil moisture</span><span class="muted text-sm">Open-Meteo weather model</span>
+          <span id="src-moist" class="text-sm text-white/70">Waiting…</span>
+        </div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_1.4fr_1.4fr] sm:gap-4 sm:p-5">
+          <span class="font-bold">Site conditions</span><span class="muted text-sm">Open-Meteo weather model · elevation, soil temperature, ET₀</span>
+          <span id="src-site" class="text-sm text-white/70">Waiting…</span>
+        </div>
+        <div class="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[1fr_1.4fr_1.4fr] sm:gap-4 sm:p-5">
+          <span class="font-bold">Base map</span><span class="muted text-sm">Esri World Dark Gray · © OpenStreetMap contributors</span>
+          <span class="text-sm text-white/70">Background only; not satellite data</span>
+        </div>
+      </div>
+      <p class="muted mt-4 text-xs leading-6">No API keys are used in this page. All sources above are open datasets read directly by the browser. Datasets that cannot be reached are hidden rather than replaced with placeholder values.</p>
+    </section>
+  </main>
+
+  <!-- ================= FOOTER (identical on every page) ================= -->
+  <footer class="border-t border-white/10 bg-[#05080a] px-6 py-12 text-sm text-white/40 sm:px-10 lg:px-14">
+    <div class="mx-auto mb-8 grid max-w-[1600px] grid-cols-2 gap-8 md:grid-cols-4">
+      <div class="space-y-3">
+        <p class="serif mb-4 font-semibold tracking-[0.18em] text-white">BH<span class="wordmark-infinity" aria-label="infinity">∞</span>MI</p>
+        <p class="cursor-pointer hover:underline">Agritech Advisory</p>
+        <p class="cursor-pointer hover:underline">Emergency Logistics</p>
+        <p class="cursor-pointer hover:underline">Micro-location Engine</p>
+      </div>
+      <div class="space-y-3">
+        <p class="mb-4 font-medium text-white">Data Sources</p>
+        <p class="cursor-pointer hover:underline">Open-Meteo</p>
+        <p class="cursor-pointer hover:underline">NASA POWER</p>
+        <p class="cursor-pointer hover:underline">ISRO Bhuvan</p>
+        <p class="cursor-pointer hover:underline">Agmarknet</p>
+      </div>
+      <div class="space-y-3">
+        <p class="mb-4 font-medium text-white">Help</p>
+        <p class="cursor-pointer hover:underline">Account</p>
+        <p class="cursor-pointer hover:underline">Media Center</p>
+        <p class="cursor-pointer hover:underline">Privacy</p>
+      </div>
+      <div class="space-y-3">
+        <p class="mb-4 font-medium text-white">About</p>
+        <p class="cursor-pointer hover:underline">Hackathon Project</p>
+        <p class="cursor-pointer hover:underline">Terms of Use</p>
+      </div>
+    </div>
+    <div class="mx-auto max-w-[1600px] border-t border-white/10 pt-8 text-xs">
+      <p>© 2026 BHOOMI. Built for live demo robustness. No mock data generated.</p>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       SHARED SCRIPT  (same background / ripple / spotlight / location state as the other pages)
+
+       SHARED LOCATION STATE (set on the Dashboard, read here)
+         localStorage 'bhoomi.region'   = "lat,lon|Name"
+         BHOOMI.region()                -> { lat, lon, name }
+         BHOOMI.setRegion(lat, lon, name) -> updates the state and fires 'bhoomi:region'
+       ============================================================ -->
+  <script>
+  (() => {
+    /* ---- Time-of-day background ---- */
+    const heroImg = document.getElementById('dynamic-hero-bg');
+    const BACKGROUNDS = { morning:'./morning5.jpg', evening:'./afternoon.png', night:'./night.png' };
+    let currentPeriod = null;
+    const periodFor = (h) => (h >= 6 && h < 11) ? 'morning' : (h >= 11 && h < 19) ? 'evening' : 'night';
+
+    function applyBackground() {
+      const period = periodFor(new Date().getHours());
+      if (period === currentPeriod) return;
+      const isFirst = currentPeriod === null;
+      currentPeriod = period;
+      const swap = () => {
+        heroImg.onload = () => {
+          heroImg.classList.remove('is-swapping');
+          requestAnimationFrame(() => requestAnimationFrame(() => { heroImg.style.transition = ''; }));
+        };
+        heroImg.onerror = () => {
+          console.error('Background failed to load:', BACKGROUNDS[period]);
+          heroImg.style.transition = '';
+          heroImg.classList.remove('is-swapping');
+        };
+        heroImg.dataset.period = period;
+        heroImg.src = BACKGROUNDS[period];
+      };
+      if (isFirst) { heroImg.style.transition = 'none'; swap(); }      // no fade on page load: keeps page changes seamless
+      else { heroImg.classList.add('is-swapping'); setTimeout(swap, 1000); }
+    }
+    applyBackground();
+    setInterval(applyBackground, 60 * 1000);
+
+    /* ---- Water-tap ripple on click ---- */
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const cv = document.getElementById('fx-click');
+      const ctx = cv.getContext('2d');
+      const drops = [];
+      let raf = 0, w = 0, h = 0;
+      const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+
+      const fit = () => {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      };
+      const onDown = (e) => {
+        drops.push({ x:e.clientX, y:e.clientY, t:performance.now() });
+        if (!raf) raf = requestAnimationFrame(draw);
+      };
+      function draw(now) {
+        ctx.clearRect(0, 0, w, h);
+        const maxR = w < 640 ? 100 : 150;
+        for (let d = drops.length - 1; d >= 0; d--) {
+          const age = now - drops[d].t;
+          if (age > 1700) { drops.splice(d, 1); continue; }
+          const { x, y } = drops[d];
+          const p0 = age / 280;
+          if (p0 < 1) {
+            ctx.fillStyle = `rgba(214,255,247,${0.85 * (1 - p0)})`;
+            ctx.beginPath(); ctx.arc(x, y, 8 * (1 - p0) + 1, 0, Math.PI * 2); ctx.fill();
+          }
+          for (let i = 0; i < 3; i++) {
+            const a = age - i * 150;
+            if (a < 0) continue;
+            const p = a / 1200;
+            if (p >= 1) continue;
+            const r = easeOut(p) * maxR * (1 - i * 0.2);
+            const alpha = (1 - p) * (0.6 - i * 0.14);
+            if (i === 0) {
+              const g = ctx.createRadialGradient(x, y, r * 0.55, x, y, r);
+              g.addColorStop(0, 'rgba(52,211,153,0)');
+              g.addColorStop(1, `rgba(52,211,153,${0.12 * (1 - p)})`);
+              ctx.fillStyle = g;
+              ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.strokeStyle = `rgba(167,243,235,${alpha})`;
+            ctx.lineWidth = 2.4 * (1 - p) + 0.6;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+        raf = drops.length ? requestAnimationFrame(draw) : 0;
+        if (!raf) ctx.clearRect(0, 0, w, h);
+      }
+      fit();
+      window.addEventListener('resize', fit);
+      window.addEventListener('pointerdown', onDown, { passive: true });
+    }
+
+    /* ---- Card hover spotlight follows the cursor ---- */
+    document.addEventListener('pointermove', (e) => {
+      const card = e.target.closest && e.target.closest('.card');
+      if (!card) return;
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    }, { passive: true });
+
+    /* ---- Shared region (read from the state set on the Dashboard) ---- */
+        /* ---- Shared state set on the Dashboard: region + crop ---- */
+    const REGION_KEY = 'bhoomi.region';
+    const CROP_KEY = 'bhoomi.crop';
+    const DEFAULT_REGION = '25.4358,81.8463|Prayagraj';
+
+    /* Indicative thresholds only; check local agronomy advice (KVK) before acting. */
+    const CROP_PROFILES = {
+      wheat:     { name:'Wheat',                heat:32, wetDay:40,  hum:80, wind:35, lowRain:5,  stage:'flowering and grain filling' },
+      rice:      { name:'Rice (Paddy)',         heat:35, wetDay:100, hum:85, wind:40, lowRain:15, stage:'flowering' },
+      maize:     { name:'Maize',                heat:35, wetDay:50,  hum:85, wind:35, lowRain:10, stage:'tasseling and silking' },
+      sugarcane: { name:'Sugarcane',            heat:38, wetDay:80,  hum:85, wind:30, lowRain:10, stage:'the grand growth phase' },
+      potato:    { name:'Potato',               heat:30, wetDay:40,  hum:80, wind:40, lowRain:8,  stage:'tuber bulking' },
+      mustard:   { name:'Mustard',              heat:30, wetDay:30,  hum:80, wind:40, lowRain:3,  stage:'flowering and pod filling' },
+      cotton:    { name:'Cotton',               heat:38, wetDay:50,  hum:85, wind:40, lowRain:10, stage:'flowering and boll formation' },
+      soybean:   { name:'Soybean',              heat:35, wetDay:50,  hum:85, wind:40, lowRain:10, stage:'flowering and pod setting' },
+      tomato:    { name:'Tomato',               heat:33, wetDay:40,  hum:80, wind:35, lowRain:10, stage:'flowering and fruit set' },
+      onion:     { name:'Onion',                heat:35, wetDay:40,  hum:80, wind:40, lowRain:8,  stage:'bulb formation' },
+      gram:      { name:'Gram (Chickpea)',      heat:32, wetDay:30,  hum:80, wind:40, lowRain:3,  stage:'flowering and pod filling' },
+      bajra:     { name:'Pearl Millet (Bajra)', heat:40, wetDay:60,  hum:85, wind:40, lowRain:8,  stage:'flowering' },
+    };
+
+    const store = {
+      get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+    };
+    const validRegion = (v) => {
+      if (typeof v !== 'string') return false;
+      const [coords, name] = v.split('|');
+      const [lat, lon] = (coords || '').split(',').map(Number);
+      return !!name && Number.isFinite(lat) && Number.isFinite(lon);
+    };
+    const hasRegion = () => validRegion(store.get(REGION_KEY));
+    const current = () => { const v = store.get(REGION_KEY); return validRegion(v) ? v : DEFAULT_REGION; };
+
+    function region() {
+      const [coords, name] = current().split('|');
+      const [lat, lon] = coords.split(',').map(Number);
+      return { lat, lon, name };
+    }
+    const farm = () => store.get('bhoomi.farmName') || '';
+    function crop() {
+      const k = store.get(CROP_KEY);
+      return CROP_PROFILES[k] ? { key: k, ...CROP_PROFILES[k] } : null;
+    }
+    function syncLabels() {
+      document.querySelectorAll('[data-region-name]').forEach((el) => { el.textContent = region().name; });
+      document.querySelectorAll('[data-crop-name]').forEach((el) => { el.textContent = crop() ? crop().name : 'Not selected'; });
+      document.querySelectorAll('[data-region-hint]').forEach((el) => { el.classList.toggle('hidden', hasRegion()); });
+    }
+    function setRegion(lat, lon, name) {
+      const v = `${lat},${lon}|${name}`;
+      if (!validRegion(v)) return;
+      store.set(REGION_KEY, v);
+      syncLabels();
+      window.dispatchEvent(new CustomEvent('bhoomi:region'));
+    }
+    window.BHOOMI = { region, farm, crop, hasRegion, setRegion };
+    syncLabels();
+
+    /* Region or crop changed in another tab (e.g. on the Dashboard) */
+    window.addEventListener('storage', (e) => {
+      if (e.key === REGION_KEY) { syncLabels(); window.dispatchEvent(new CustomEvent('bhoomi:region')); }
+      if (e.key === CROP_KEY)   { syncLabels(); window.dispatchEvent(new CustomEvent('bhoomi:crop')); }
+    });
+  })();
+  </script>
+
+  <!-- ================= PAGE SCRIPT: SATELLITE ================= -->
+  <script>
+/* =====================================================================
+   CONFIG
+   No API keys anywhere. Every source below is an open endpoint.
+   ===================================================================== */
+const CFG = {
+  stac:       'https://earth-search.aws.element84.com/v1/search',        // Sentinel-2 L2A + ESA WorldCover catalogue
+  soilgrids:  'https://rest.isric.org/soilgrids/v2.0/properties/query',  // SoilGrids 2.0 point query (later: point this at your own backend proxy)
+  openMeteo:  'https://api.open-meteo.com/v1/forecast',
+  halfMeters: 1500,        // analysis window = 2 × halfMeters on each side (3 × 3 km)
+  lookbackDays: 90,
+  maxLocalCloud: 20,       // % cloud+shadow over the window above which a pass is skipped
+  maxNoData: 25,           // % of the window without data above which a pass is skipped
+  maxScenes: 14,
+  ndviLow: 0.2, ndviHigh: 0.5, deltaThreshold: 0.15,
+  minReflectanceSum: 0.02, // pixels darker than this (red+NIR) give unstable NDVI and are ignored
+  soilCacheDays: 30,
+};
+
+/* =====================================================================
+   AREA OF INTEREST
+   Today: a point (+ square window). Later: set `polygon` to a GeoJSON Polygon's
+   coordinates ([[ [lon,lat], ... ]]) and the same pipeline will mask every
+   statistic to the farm boundary (see aoiMask). The window then only needs to
+   cover the polygon's bounding box.
+   ===================================================================== */
+function buildAOI() {
+  const { lat, lon, name } = BHOOMI.region();
+  return { kind: 'point', name, lat, lon, halfMeters: CFG.halfMeters, polygon: null };
+}
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $ = (id) => document.getElementById(id) || document.createElement('span');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+/* never print NaN / Infinity / absurd values */
+const num = (n, d = 0) => (n == null || !Number.isFinite(Number(n))) ? '—' : Number(n).toFixed(d);
+const sgn = (n, d = 2) => (n == null || !Number.isFinite(Number(n))) ? '—' : (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(d);
+const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', timeZone:'UTC' });
+const fmtDay = (iso) => new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', timeZone:'UTC' });
+const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const platformName = (p) => p ? p.replace('sentinel-2', 'Sentinel-2').toUpperCase().replace('SENTINEL-2', 'Sentinel-2') : 'Sentinel-2';
+let loadToken = 0;
+
+/* Show/hide with inline display so it never fights Tailwind's grid/flex utilities */
+function show(id, on) { $(id).style.display = on ? '' : 'none'; }
+
+function setSrc(id, text, tone) {
+  const el = $(id);
+  el.textContent = text;
+  el.className = 'text-sm ' + (tone === 'ok' ? 'text-emerald-300' : tone === 'warn' ? 'text-amber-200' : 'text-white/70');
+}
+function setNote(key, msg, tone) {
+  const el = $('note-' + key);
+  if (!msg) { el.classList.add('hidden'); return; }
+  el.textContent = msg;
+  el.className = 'map-note' + (tone === 'info' ? ' info' : '');
+}
+function setBanner(msg, tone) {
+  const el = $('img-banner');
+  if (!msg) { el.classList.add('hidden'); return; }
+  el.textContent = msg;
+  el.className = 'rounded-xl border px-4 py-3 text-sm font-semibold ' +
+    (tone === 'info' ? 'border-sky-300/30 bg-sky-300/10 text-sky-100' : 'border-amber-300/35 bg-amber-300/10 text-amber-100');
+}
+function stackBar(segs) {
+  const tot = segs.reduce((s, x) => s + x.v, 0) || 1;
+  return `<div class="flex h-3.5 w-full overflow-hidden rounded-full bg-white/10">` +
+    segs.map((s) => `<div title="${esc(s.label)} ${num(s.v, 0)}%" style="width:${s.v / tot * 100}%;background:${s.color}"></div>`).join('') + `</div>`;
+}
+function legendRow(items) {
+  return items.map((i) => `<span class="mr-3 inline-block"><span class="legend-dot" style="background:${i.color}"></span>${i.label} <b class="text-white">${i.val == null ? '' : num(i.val, 0) + '%'}</b></span>`).join('');
+}
+
+/* =====================================================================
+   RASTER READING (Cloud-Optimised GeoTIFFs, windowed reads, no server)
+   ===================================================================== */
+function crsFor(epsg) {
+  const code = `EPSG:${epsg}`;
+  if (!proj4.defs(code)) {
+    const zone = epsg % 100, south = Math.floor(epsg / 100) === 327;
+    proj4.defs(code, `+proj=utm +zone=${zone}${south ? ' +south' : ''} +datum=WGS84 +units=m +no_defs`);
+  }
+  return code;
+}
+const imageCache = new Map();
+function openImage(url) {
+  if (!imageCache.has(url)) {
+    imageCache.set(url, GeoTIFF.fromUrl(url).then((t) => t.getImage()).catch((e) => { imageCache.delete(url); throw e; }));
+  }
+  return imageCache.get(url);
+}
+/* Read a square window (halfM metres each side of the AOI centre) from a COG.
+   epsg = projected CRS code of the raster (Sentinel-2 UTM) or null for lon/lat rasters (WorldCover). */
+async function readWindow(url, aoi, { epsg = null, samples = [0], halfM = aoi.halfMeters } = {}) {
+  const img = await openImage(url);
+  const [ox, oy] = img.getOrigin();
+  const [rx, ry] = img.getResolution();
+  const W = img.getWidth(), H = img.getHeight();
+  let x, y, mx, my;
+  if (epsg) {
+    [x, y] = proj4('EPSG:4326', crsFor(epsg), [aoi.lon, aoi.lat]);
+    mx = Math.abs(rx); my = Math.abs(ry);
+  } else {
+    x = aoi.lon; y = aoi.lat;
+    mx = Math.abs(rx) * 111320 * Math.cos(aoi.lat * Math.PI / 180); my = Math.abs(ry) * 110574;
+  }
+  const cx = (x - ox) / rx, cy = (y - oy) / ry;
+  const nx = halfM / mx, ny = halfM / my;
+  const x0 = Math.max(0, Math.floor(cx - nx)), x1 = Math.min(W, Math.ceil(cx + nx));
+  const y0 = Math.max(0, Math.floor(cy - ny)), y1 = Math.min(H, Math.ceil(cy + ny));
+  if (x1 <= x0 || y1 <= y0) throw new Error('Location is outside this raster tile');
+  const bands = await img.readRasters({ window: [x0, y0, x1, y1], samples, interleave: false });
+  const win = { bands: Array.from(bands), width: x1 - x0, height: y1 - y0, x0, y0, ox, oy, rx, ry, epsg };
+  win.bounds = winBounds(win);
+  return win;
+}
+function winBounds(w) {
+  const L = w.ox + w.x0 * w.rx, R = w.ox + (w.x0 + w.width) * w.rx;
+  const T = w.oy + w.y0 * w.ry, B = w.oy + (w.y0 + w.height) * w.ry;
+  if (!w.epsg) return [[Math.min(T, B), Math.min(L, R)], [Math.max(T, B), Math.max(L, R)]];
+  const code = crsFor(w.epsg);
+  const pts = [[L, T], [R, T], [R, B], [L, B]].map((p) => proj4(code, 'EPSG:4326', p));
+  const lons = pts.map((p) => p[0]), lats = pts.map((p) => p[1]);
+  return [[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]];
+}
+/* Optional polygon mask (null for a point AOI = every pixel counts) */
+function aoiMask(win, aoi) {
+  if (!aoi.polygon) return null;
+  const ring = aoi.polygon[0];
+  const m = new Uint8Array(win.width * win.height);
+  const code = win.epsg ? crsFor(win.epsg) : null;
+  for (let j = 0; j < win.height; j++) for (let i = 0; i < win.width; i++) {
+    const X = win.ox + (win.x0 + i + 0.5) * win.rx, Y = win.oy + (win.y0 + j + 0.5) * win.ry;
+    const [lon, lat] = code ? proj4(code, 'EPSG:4326', [X, Y]) : [X, Y];
+    let inside = false;
+    for (let a = 0, b = ring.length - 1; a < ring.length; b = a++) {
+      const [xi, yi] = ring[a], [xj, yj] = ring[b];
+      if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    m[j * win.width + i] = inside ? 1 : 0;
+  }
+  return m;
+}
+/* Resample the 20 m scene-classification window onto the 10 m grid by map coordinates */
+function sclOnGrid(w10, wScl) {
+  const out = new Uint8Array(w10.width * w10.height);
+  const s = wScl.bands[0];
+  for (let j = 0; j < w10.height; j++) {
+    const Y = w10.oy + (w10.y0 + j + 0.5) * w10.ry;
+    const r = Math.floor((Y - wScl.oy) / wScl.ry) - wScl.y0;
+    if (r < 0 || r >= wScl.height) continue;
+    for (let i = 0; i < w10.width; i++) {
+      const X = w10.ox + (w10.x0 + i + 0.5) * w10.rx;
+      const c = Math.floor((X - wScl.ox) / wScl.rx) - wScl.x0;
+      if (c < 0 || c >= wScl.width) continue;
+      out[j * w10.width + i] = s[r * wScl.width + c];
+    }
+  }
+  return out;
+}
+
+/* =====================================================================
+   SENTINEL-2 SEARCH + SCENE ASSESSMENT
+   SCL classes: 0 no data, 1 saturated, 2 dark, 3 cloud shadow, 4 vegetation, 5 bare soil,
+   6 water, 7 unclassified, 8/9 cloud, 10 thin cirrus, 11 snow
+   ===================================================================== */
+const SCL_BAD = new Set([0, 1, 3, 8, 9, 10, 11]);
+
+async function stacSearch(body) {
+  const r = await fetch(CFG.stac, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error('STAC HTTP ' + r.status);
+  return (await r.json()).features || [];
+}
+function searchS2(aoi) {
+  const end = new Date(), start = new Date(Date.now() - CFG.lookbackDays * 864e5);
+  return stacSearch({
+    collections: ['sentinel-2-l2a'],
+    intersects: { type: 'Point', coordinates: [aoi.lon, aoi.lat] },
+    datetime: `${start.toISOString().slice(0, 10)}T00:00:00Z/${end.toISOString().slice(0, 10)}T23:59:59Z`,
+    limit: 40,
+    sortby: [{ field: 'properties.datetime', direction: 'desc' }],
+  });
+}
+const tileOf = (it) => it.properties['grid:code'] || it.properties['s2:mgrs_tile'] || String(it.properties['proj:epsg']);
+/* Comparisons need an identical pixel grid, so stay on one Sentinel-2 tile (the one with most passes) */
+function pickTileScenes(items) {
+  const byTile = new Map();
+  items.forEach((it) => { const k = tileOf(it); (byTile.get(k) || byTile.set(k, []).get(k)).push(it); });
+  let best = null;
+  for (const [k, list] of byTile) if (!best || list.length > best.list.length) best = { k, list };
+  const seen = new Set(), out = [];
+  for (const it of best.list) {
+    const day = it.properties.datetime.slice(0, 10);
+    if (seen.has(day)) continue;
+    seen.add(day); out.push(it);
+  }
+  return out.slice(0, CFG.maxScenes);
+}
+async function assessScene(item, aoi) {
+  const base = { item, date: item.properties.datetime, sceneCloud: item.properties['eo:cloud_cover'], localCloud: null, nodata: null, usable: false, win: null, status: '' };
+  if (base.sceneCloud != null && base.sceneCloud >= 98) { base.localCloud = base.sceneCloud; base.status = 'cloudy'; return base; }
+  try {
+    const win = await readWindow(item.assets.scl.href, aoi, { epsg: item.properties['proj:epsg'], halfM: aoi.halfMeters + 40 });
+    const s = win.bands[0]; let nod = 0, cl = 0;
+    for (let i = 0; i < s.length; i++) { const v = s[i]; if (v === 0) nod++; else if (v === 3 || v === 8 || v === 9 || v === 10) cl++; }
+    const valid = s.length - nod;
+    base.win = win;
+    base.nodata = nod / s.length * 100;
+    base.localCloud = valid ? cl / valid * 100 : null;
+    if (base.nodata > CFG.maxNoData || base.localCloud == null) base.status = 'nodata';
+    else if (base.localCloud > CFG.maxLocalCloud) base.status = 'cloudy';
+    else { base.status = 'usable'; base.usable = true; }
+  } catch (e) {
+    console.warn('SCL read failed', item.id, e);
+    base.status = 'error';
+  }
+  return base;
+}
+function bandScale(item, key) {
+  const rb = item.assets[key] && item.assets[key]['raster:bands'] && item.assets[key]['raster:bands'][0];
+  let scale = rb && rb.scale != null ? Number(rb.scale) : 0.0001;
+  if (!Number.isFinite(scale) || scale <= 0) scale = 0.0001;
+  let offset = rb && rb.offset != null ? Number(rb.offset) : null;
+  if (offset == null || !Number.isFinite(offset)) offset = parseFloat(item.properties['s2:processing_baseline']) >= 4 ? -0.1 : 0;   // post-Jan-2022 baseline adds a -0.1 offset
+  return { scale, offset };
+}
+async function loadScene(a, aoi) {
+  const it = a.item, A = it.assets, epsg = it.properties['proj:epsg'];
+  const [tci, red, nir] = await Promise.all([
+    readWindow(A.visual.href, aoi, { epsg, samples: [0, 1, 2] }),
+    readWindow(A.red.href, aoi, { epsg }),
+    readWindow(A.nir.href, aoi, { epsg }),
+  ]);
+  if (red.width !== tci.width || nir.width !== tci.width || red.height !== tci.height || nir.height !== tci.height) throw new Error('Band grids do not match');
+  const n = tci.width * tci.height;
+  const scl = sclOnGrid(tci, a.win);
+  const rs = bandScale(it, 'red'), ns = bandScale(it, 'nir');
+  const R = red.bands[0], N = nir.bands[0];
+  const ndvi = new Float32Array(n).fill(NaN);
+  const cls = new Uint8Array(n);                      // 0 masked, 1 low, 2 moderate, 3 high, 4 water
+  const mask = aoiMask(tci, aoi);
+  for (let i = 0; i < n; i++) {
+    if (mask && !mask[i]) continue;
+    const s = scl[i];
+    if (SCL_BAD.has(s)) continue;
+    if (s === 6) { cls[i] = 4; continue; }
+    if (!R[i] || !N[i]) continue;
+    /* reflectance cannot be negative. Without this clamp, a tiny positive (red+NIR) with one
+       negative term made NDVI explode to billions and wrecked the mean. */
+    const r = Math.max(0, R[i] * rs.scale + rs.offset), nn = Math.max(0, N[i] * ns.scale + ns.offset);
+    const d = nn + r;
+    if (d < CFG.minReflectanceSum) continue;          // too dark / noisy for a reliable ratio
+    let v = (nn - r) / d;
+    if (!Number.isFinite(v)) continue;
+    v = Math.max(-1, Math.min(1, v));
+    ndvi[i] = v;
+    cls[i] = v < CFG.ndviLow ? 1 : v < CFG.ndviHigh ? 2 : 3;
+  }
+  return { a, date: a.date, w: tci.width, h: tci.height, rgb: tci.bands, ndvi, cls, scl, mask, win: tci, bounds: tci.bounds };
+}
+
+/* =====================================================================
+   STATISTICS
+   ===================================================================== */
+function ndviStats(S) {
+  const c = [0, 0, 0, 0, 0]; let sum = 0, nv = 0;
+  for (let i = 0; i < S.cls.length; i++) {
+    c[S.cls[i]]++;
+    if (S.cls[i] >= 1 && S.cls[i] <= 3 && Number.isFinite(S.ndvi[i])) { sum += S.ndvi[i]; nv++; }
+  }
+  return { pct: [1, 2, 3].map((k) => nv ? c[k] / nv * 100 : 0), mean: nv ? sum / nv : null, valid: nv, total: S.cls.length, water: c[4] };
+}
+function deltaStats(L, P) {
+  let common = 0, inc = 0, dec = 0, sum = 0;
+  for (let i = 0; i < L.ndvi.length; i++) {
+    const a = L.ndvi[i], b = P.ndvi[i];
+    if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+    const d = a - b; common++; sum += d;
+    if (d >= CFG.deltaThreshold) inc++; else if (d <= -CFG.deltaThreshold) dec++;
+  }
+  return { common, inc: common ? inc / common * 100 : 0, dec: common ? dec / common * 100 : 0, mean: common ? sum / common : null };
+}
+const sclGroup = (v) => v === 4 ? 'veg' : v === 5 ? 'bare' : v === 6 ? 'water' : SCL_BAD.has(v) ? null : 'other';
+function surfaceState(S) {
+  const c = { veg: 0, bare: 0, water: 0, other: 0 }; let t = 0;
+  for (let i = 0; i < S.scl.length; i++) {
+    if (S.mask && !S.mask[i]) continue;
+    const g = sclGroup(S.scl[i]); if (!g) continue; c[g]++; t++;
+  }
+  return { veg: t ? c.veg / t * 100 : 0, bare: t ? c.bare / t * 100 : 0, water: t ? c.water / t * 100 : 0, other: t ? c.other / t * 100 : 0, valid: t };
+}
+function coverChangeStats(L, P) {
+  let common = 0, toBare = 0, toVeg = 0;
+  for (let i = 0; i < L.scl.length; i++) {
+    if (L.mask && !L.mask[i]) continue;
+    const a = sclGroup(L.scl[i]), b = sclGroup(P.scl[i]);
+    if (!a || !b) continue;
+    common++;
+    if (b === 'veg' && a === 'bare') toBare++;
+    else if (b === 'bare' && a === 'veg') toVeg++;
+  }
+  return { common, toBare: common ? toBare / common * 100 : 0, toVeg: common ? toVeg / common * 100 : 0 };
+}
+
+/* =====================================================================
+   CANVAS RENDERING (every pixel comes from the real rasters)
+   ===================================================================== */
+function paint(w, h, fn) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'), img = ctx.createImageData(w, h), d = img.data;
+  for (let i = 0; i < w * h; i++) fn(i, d, i * 4);
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+const COL = { low: [180, 83, 9], mod: [234, 179, 8], high: [16, 185, 129], water: [59, 130, 246], inc: [52, 211, 153], dec: [245, 158, 11], loss: [239, 68, 68] };
+function put(d, o, c, a = 255) { d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = a; }
+function dimBase(S, i, d, o, k = 0.5) {
+  const r = S.rgb[0][i], g = S.rgb[1][i], b = S.rgb[2][i];
+  if (!(r || g || b)) { d[o + 3] = 0; return false; }
+  d[o] = r * k; d[o + 1] = g * k; d[o + 2] = b * k; d[o + 3] = 255; return true;
+}
+function mixTo(d, o, c, t) { d[o] = d[o] * (1 - t) + c[0] * t; d[o + 1] = d[o + 1] * (1 - t) + c[1] * t; d[o + 2] = d[o + 2] * (1 - t) + c[2] * t; }
+const renderTrueColour = (S) => paint(S.w, S.h, (i, d, o) => {
+  const r = S.rgb[0][i], g = S.rgb[1][i], b = S.rgb[2][i];
+  if (!(r || g || b)) return;
+  d[o] = r; d[o + 1] = g; d[o + 2] = b; d[o + 3] = 255;
+});
+const renderNDVI = (S) => paint(S.w, S.h, (i, d, o) => {
+  const k = S.cls[i];
+  if (k === 1) put(d, o, COL.low, 240); else if (k === 2) put(d, o, COL.mod, 240); else if (k === 3) put(d, o, COL.high, 240); else if (k === 4) put(d, o, COL.water, 230);
+});
+const renderDelta = (L, P) => paint(L.w, L.h, (i, d, o) => {
+  if (!dimBase(L, i, d, o)) return;
+  const a = L.ndvi[i], b = P.ndvi[i];
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return;
+  const dv = a - b;
+  if (dv >= CFG.deltaThreshold) mixTo(d, o, COL.inc, 0.55 + 0.4 * Math.min(1, (dv - CFG.deltaThreshold) / 0.35));
+  else if (dv <= -CFG.deltaThreshold) mixTo(d, o, dv <= -0.35 ? COL.loss : COL.dec, 0.55 + 0.4 * Math.min(1, (-dv - CFG.deltaThreshold) / 0.35));
+});
+const renderCoverChange = (L, P) => paint(L.w, L.h, (i, d, o) => {
+  if (!dimBase(L, i, d, o)) return;
+  const a = sclGroup(L.scl[i]), b = sclGroup(P.scl[i]);
+  if (!a || !b) return;
+  if (b === 'veg' && a === 'bare') mixTo(d, o, COL.loss, 0.85);
+  else if (b === 'bare' && a === 'veg') mixTo(d, o, COL.inc, 0.85);
+});
+const WC = {
+  10: ['Tree cover', '#006400'], 20: ['Shrubland', '#ffbb22'], 30: ['Grassland', '#ffff4c'], 40: ['Cropland', '#f096ff'],
+  50: ['Built-up', '#fa0000'], 60: ['Bare / sparse vegetation', '#b4b4b4'], 70: ['Snow and ice', '#f0f0f0'], 80: ['Permanent water', '#0064c8'],
+  90: ['Herbaceous wetland', '#0096a0'], 95: ['Mangroves', '#00cf75'], 100: ['Moss and lichen', '#fae6a0'],
+};
+const hex2rgb = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const renderWorldCover = (wc) => paint(wc.width, wc.height, (i, d, o) => {
+  const v = wc.bands[0][i]; if (!WC[v]) return;
+  put(d, o, hex2rgb(WC[v][1]), 215);
+});
+
+/* =====================================================================
+   MAPS (Leaflet over a dark basemap; image overlays are the real rasters)
+   ===================================================================== */
+const maps = {};
+/* CARTO's tiles now stamp "API KEY REQUIRED" over the map. Esri's dark-gray canvas needs no key.
+   If Esri tiles fail repeatedly, fall back to OpenStreetMap with a dark CSS filter. */
+function addBasemap(map) {
+  const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    maxNativeZoom: 16, maxZoom: 19,
+    attribution: 'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors',
+  }).addTo(map);
+  const labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+    maxNativeZoom: 16, maxZoom: 19, opacity: 0.85,
+  }).addTo(map);
+  let errors = 0, swapped = false;
+  esri.on('tileerror', () => {
+    if (++errors < 4 || swapped) return;
+    swapped = true;
+    map.removeLayer(esri); map.removeLayer(labels);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, className: 'osm-dark', attribution: '© OpenStreetMap contributors' }).addTo(map).bringToBack();
+  });
+}
+function ensureMap(key, aoi) {
+  if (maps[key]) maps[key].map.remove();
+  const map = L.map('map-' + key, { zoomControl: false, scrollWheelZoom: false, zoomSnap: 0.25, zoomDelta: 0.5, attributionControl: true });
+  addBasemap(map);
+  L.control.zoom({ position: 'topright' }).addTo(map);
+  map.setView([aoi.lat, aoi.lon], 13);
+  L.circleMarker([aoi.lat, aoi.lon], { radius: 7, color: '#34d399', weight: 2, fillColor: '#34d399', fillOpacity: 0.25 }).addTo(map).bindTooltip('Selected point');
+  maps[key] = { map, overlays: [], fitted: false };
+  setTimeout(() => map.invalidateSize(), 0);
+}
+function setOverlays(key, list, bounds) {
+  const m = maps[key]; if (!m) return;
+  m.overlays.forEach((o) => m.map.removeLayer(o));
+  m.overlays = list.map((o) => L.imageOverlay(o.url, bounds, { opacity: o.opacity ?? 1, interactive: false, className: o.pixel ? 'px' : '' }).addTo(m.map));
+  if (!m.fitted && bounds) { m.map.fitBounds(bounds, { padding: [8, 8], maxZoom: 16 }); m.fitted = true; }
+}
+function setSeg(attr, value) {
+  document.querySelectorAll(`[${attr}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute(attr) === value)));
+}
+const S = { aoi: null, L: null, P: null, wc: null, urls: {}, imgView: 'tc', vegView: 'latest', coverView: 'cover', assessed: [], imageryOk: false };
+function url(key, build) { return S.urls[key] || (S.urls[key] = build().toDataURL('image/png')); }
+
+/* ---------- Section 1: imagery ---------- */
+function renderImageryMap() {
+  if (!S.L) return;
+  const kind = S.imgView;
+  const mk = (sc, tag) => ({ url: url(kind + tag, () => kind === 'tc' ? renderTrueColour(sc) : renderNDVI(sc)), pixel: kind === 'ndvi' });
+  const list = [];
+  if (S.P) list.push({ ...mk(S.P, 'P'), opacity: 1 });
+  list.push({ ...mk(S.L, 'L'), opacity: S.P ? +$('cmp').value / 100 : 1 });
+  setOverlays('img', list, S.L.bounds);
+  $('legend-img').classList.toggle('hidden', kind !== 'ndvi');
+  $('legend-img').innerHTML = ndviLegend();
+  setSeg('data-img-view', kind);
+  updateCaption();
+}
+function updateCaption() {
+  if (!S.L) return;
+  const v = +$('cmp').value, showingPrev = S.P && v < 50, sc = showingPrev ? S.P : S.L;
+  const a = sc.a;
+  const layer = S.imgView === 'tc' ? 'True colour (B04/B03/B02)' : 'NDVI';
+  const blend = S.P && v > 0 && v < 100 ? ` · blending previous and latest` : '';
+  $('img-caption').textContent = `${layer} · ${fmtDate(a.date)} (UTC) · ${num(a.localCloud, 0)}% cloud/shadow in window · 10 m pixels · ${platformName(a.item.properties.platform)}${blend}`;
+}
+function renderObservations(assessed) {
+  const row = (el, a) => {
+    if (!a) { $(el + '-date').textContent = '—'; $(el + '-meta').textContent = el === 'obs-prev' ? 'No earlier cloud-free pass found' : '—'; return; }
+    $(el + '-date').textContent = fmtDate(a.date);
+    $(el + '-meta').textContent = `${platformName(a.item.properties.platform)} · tile ${tileOf(a.item).replace('MGRS-', '')} · ${num(a.localCloud, 0)}% cloud in window · ${num(a.sceneCloud, 0)}% whole scene`;
+  };
+  row('obs-latest', S.L && S.L.a); row('obs-prev', S.P && S.P.a);
+  $('cmp-latest-date').textContent = S.L ? fmtDay(S.L.date) : '—';
+  $('cmp-prev-date').textContent = S.P ? fmtDay(S.P.date) : '—';
+  $('cmp').disabled = !S.P;
+  if (!S.P) $('cmp').value = 100;
+}
+function renderTimeline(assessed) {
+  const L = assessed.find((a) => a.usable), P = assessed.filter((a) => a.usable)[1];
+  $('timeline').innerHTML = assessed.map((a) => {
+    const cloud = a.localCloud == null ? null : Math.min(100, a.localCloud);
+    let chip = '<span class="chip">Usable</span>';
+    if (a === L) chip = '<span class="chip ok">Latest</span>';
+    else if (a === P) chip = '<span class="chip sky">Previous</span>';
+    else if (a.status === 'cloudy') chip = '<span class="chip warn">Too cloudy</span>';
+    else if (a.status === 'nodata') chip = '<span class="chip warn">No data here</span>';
+    else if (a.status === 'error') chip = '<span class="chip warn">Unreadable</span>';
+    const col = a.usable ? '#34d399' : '#fbbf24';
+    return `<div class="grid grid-cols-[3.75rem_1fr_6rem] items-start gap-3 text-xs">
+      <span class="pt-px font-bold text-white/80">${fmtDay(a.date)}</span>
+      <div title="${cloud == null ? 'n/a' : num(cloud, 0) + '% cloud/shadow in window'}">
+        <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10"><div class="h-full rounded-full" style="width:${cloud == null ? 0 : Math.max(2, cloud)}%;background:${col}"></div></div>
+        <p class="mt-1 text-[0.8rem] text-white/60">${cloud == null ? 'cloud: n/a' : num(cloud, 0) + '% cloud'}</p>
+      </div>
+      <span class="text-right">${chip}</span></div>`;
+  }).join('') || '<p class="skeleton text-sm">No passes found.</p>';
+}
+function ndviLegend() {
+  return legendRow([
+    { color: '#b45309', label: `Low (&lt;${CFG.ndviLow})` }, { color: '#eab308', label: `Moderate (${CFG.ndviLow}–${CFG.ndviHigh})` },
+    { color: '#10b981', label: `High (&gt;${CFG.ndviHigh})` }, { color: '#3b82f6', label: 'Water' },
+  ]) + '<span class="text-white/60">Clouds, shadow: transparent</span>';
+}
+
+/* ---------- Section 2: vegetation ---------- */
+function renderVegetation() {
+  const L = S.L, P = S.P;
+  if (!L) return;
+  const sl = ndviStats(L), sp = P ? ndviStats(P) : null;
+  const cats = (s) => [
+    { label: `Low (<${CFG.ndviLow})`, v: s.pct[0], color: '#b45309' },
+    { label: `Moderate`, v: s.pct[1], color: '#eab308' },
+    { label: `High (>${CFG.ndviHigh})`, v: s.pct[2], color: '#10b981' },
+  ];
+  const block = (title, s, date) => `<div>
+      <div class="mb-1.5 flex items-center justify-between gap-2 text-xs"><span class="font-bold text-white/85">${title} · ${fmtDay(date)}</span><span class="text-white/60">${num(s.valid / s.total * 100, 0)}% clear pixels</span></div>
+      ${stackBar(cats(s))}
+      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/75">${cats(s).map((c) => `<span class="whitespace-nowrap"><span class="legend-dot" style="background:${c.color}"></span>${c.label.split(' (')[0]} <b class="text-white">${num(c.v, 0)}%</b></span>`).join('')}</div></div>`;
+  $('veg-bars').innerHTML = block('Latest', sl, L.date) + (P ? block('Previous', sp, P.date) : '<p class="muted text-xs">No earlier cloud-free observation to compare.</p>');
+
+  const means = $('veg-means');
+  if (P) {
+    const ds = deltaStats(L, P);
+    const tone = ds.mean == null ? '' : ds.mean >= 0 ? 'text-emerald-300' : 'text-amber-300';
+    means.className = 'stat-grid border-t border-white/10 pt-4';
+    means.innerHTML = `
+      <div><p class="stat-num">${num(sp.mean, 2)}</p><p class="stat-label">Mean NDVI<br>${fmtDay(P.date)}</p></div>
+      <div><p class="stat-num ${tone}">${sgn(ds.mean, 2)}</p><p class="stat-label">Change<br>&nbsp;</p></div>
+      <div><p class="stat-num">${num(sl.mean, 2)}</p><p class="stat-label">Mean NDVI<br>${fmtDay(L.date)}</p></div>`;
+    $('veg-text').textContent = vegSentence(L, P, sl, sp, ds);
+  } else {
+    means.className = 'hidden';
+    $('veg-text').textContent = `Only one cloud-free observation (${fmtDate(L.date)}) is available in the last ${CFG.lookbackDays} days, so no change can be reported. Mean NDVI over the clear part of the window is ${num(sl.mean, 2)}.`;
+  }
+  document.querySelector('[data-veg-view="previous"]').disabled = !P;
+  document.querySelector('[data-veg-view="change"]').disabled = !P;
+  if (!P && S.vegView !== 'latest') S.vegView = 'latest';
+  renderVegMap();
+}
+function vegSentence(L, P, sl, sp, ds) {
+  const gap = daysBetween(P.date, L.date);
+  const move = ds.mean;
+  if (move == null || sl.mean == null || sp.mean == null) return 'The two observations share too few clear pixels to report a reliable change.';
+  let s = `Between ${fmtDate(P.date)} and ${fmtDate(L.date)} (${gap} days), vegetation activity increased across ${num(ds.inc, 0)}% of the clear window and decreased across ${num(ds.dec, 0)}%; mean NDVI went from ${num(sp.mean, 2)} to ${num(sl.mean, 2)}. `;
+  if (Math.abs(move) < 0.03 && ds.inc < 10 && ds.dec < 10) s += 'The overall green signal is stable. ';
+  else if (move >= 0.03) s += 'The overall green signal is rising, which is consistent with crop growth, emergence after sowing or an irrigation response. ';
+  else if (move <= -0.03) s += 'The overall green signal is falling, which is consistent with harvest, crop maturity or senescence, ploughing, or dry conditions. ';
+  else s += 'Changes are patchy rather than uniform, which often reflects different fields being at different crop stages. ';
+  s += 'Satellite data alone cannot tell these causes apart.';
+  if (gap > 30) s += ` The two dates are ${gap} days apart, so normal seasonal change may dominate.`;
+  return s;
+}
+function renderVegMap() {
+  if (!S.L) return;
+  const v = S.vegView, bounds = S.L.bounds;
+  let item;
+  if (v === 'latest') item = { url: url('ndviL', () => renderNDVI(S.L)), pixel: true };
+  else if (v === 'previous' && S.P) item = { url: url('ndviP', () => renderNDVI(S.P)), pixel: true };
+  else if (v === 'change' && S.P) item = { url: url('dndvi', () => renderDelta(S.L, S.P)), pixel: true };
+  else item = { url: url('ndviL', () => renderNDVI(S.L)), pixel: true };
+  setOverlays('veg', [item], bounds);
+  setSeg('data-veg-view', S.vegView);
+  $('legend-veg').innerHTML = v === 'change'
+    ? legendRow([{ color: '#34d399', label: `Increase (ΔNDVI ≥ +${CFG.deltaThreshold})` }, { color: '#f59e0b', label: `Decrease (≤ −${CFG.deltaThreshold})` }, { color: '#ef4444', label: 'Strong decrease (≤ −0.35)' }]) + '<span class="text-white/60">Unchanged: dimmed true colour</span>'
+    : ndviLegend();
+}
+
+/* ---------- Section 4: land cover & change ---------- */
+function renderCoverSection() {
+  const L = S.L, P = S.P, wc = S.wc;
+  /* WorldCover composition: shown only when the dataset actually loaded; otherwise hidden */
+  show('cover-comp', !!wc);
+  show('row-wc', !!wc);
+  const btnC = document.querySelector('[data-cover-view="cover"]'), btnX = document.querySelector('[data-cover-view="change"]');
+  btnC.style.display = wc ? '' : 'none';
+  $('cover-sub').textContent = wc
+    ? 'ESA WorldCover (10 m, reference year) · Sentinel-2 scene classification for changes'
+    : 'Sentinel-2 scene classification (10–20 m) · compared between actual observations';
+  $('state-wrap').style.borderTopWidth = wc ? '' : '0';
+  $('state-wrap').style.paddingTop = wc ? '' : '0';
+
+  if (wc) {
+    const cnt = {}; let tot = 0;
+    const px = wc.bands[0];
+    for (let i = 0; i < px.length; i++) { const v = px[i]; if (WC[v]) { cnt[v] = (cnt[v] || 0) + 1; tot++; } }
+    const rows = Object.entries(cnt).map(([k, c]) => ({ k: +k, pct: c / tot * 100 })).sort((a, b) => b.pct - a.pct).filter((r) => r.pct >= 0.5);
+    $('cover-bars').innerHTML = rows.map((r) => `<div class="grid grid-cols-[8.5rem_1fr_3rem] items-center gap-3 text-xs">
+      <span class="font-bold text-white/85"><span class="legend-dot" style="background:${WC[r.k][1]}"></span>${WC[r.k][0]}</span>
+      <div class="h-2 overflow-hidden rounded-full bg-white/10"><div class="h-full rounded-full" style="width:${r.pct}%;background:${WC[r.k][1]}"></div></div>
+      <span class="text-right font-bold">${num(r.pct, r.pct < 10 ? 1 : 0)}%</span></div>`).join('');
+    $('wc-year').textContent = `WorldCover ${S.wcYear || ''}`.trim();
+    S.cover = { rows };
+  } else {
+    S.cover = null;
+  }
+
+  // surface state per observation (Sentinel-2 SCL)
+  if (L) {
+    const st = (s, date, title) => `<div><div class="mb-1.5 flex items-center justify-between text-xs"><span class="font-bold text-white/85">${title} · ${fmtDay(date)}</span></div>${stackBar([
+      { label: 'Vegetated', v: s.veg, color: '#10b981' }, { label: 'Bare / non-vegetated', v: s.bare, color: '#a16207' }, { label: 'Water', v: s.water, color: '#3b82f6' }, { label: 'Other', v: s.other, color: '#64748b' }])}
+      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/75"><span class="whitespace-nowrap"><span class="legend-dot" style="background:#10b981"></span>Vegetated <b class="text-white">${num(s.veg, 0)}%</b></span><span class="whitespace-nowrap"><span class="legend-dot" style="background:#a16207"></span>Bare <b class="text-white">${num(s.bare, 0)}%</b></span><span class="whitespace-nowrap"><span class="legend-dot" style="background:#3b82f6"></span>Water <b class="text-white">${num(s.water, 0)}%</b></span></div></div>`;
+    $('state-bars').innerHTML = st(surfaceState(L), L.date, 'Latest') + (P ? st(surfaceState(P), P.date, 'Previous') : '');
+  } else {
+    $('state-bars').innerHTML = '<p class="text-sm text-amber-200">Needs at least one cloud-free Sentinel-2 observation.</p>';
+  }
+
+  // findings
+  const parts = [];
+  if (S.cover && S.cover.rows.length) {
+    const top = S.cover.rows[0], crop = S.cover.rows.find((r) => r.k === 40);
+    parts.push(`${WC[top.k][0]} is the largest class (${num(top.pct, 0)}%)${crop && top.k !== 40 ? `; cropland covers ${num(crop.pct, 0)}%` : ''}. This map shows a fixed reference year, not change.`);
+  }
+  if (L && P) {
+    const cs = coverChangeStats(L, P);
+    parts.push(`Between ${fmtDate(P.date)} and ${fmtDate(L.date)}, ${num(cs.toBare, 1)}% of the clear window went from vegetated to bare or non-vegetated and ${num(cs.toVeg, 1)}% from bare to vegetated. At field scale, flips like these usually follow the crop cycle (harvest, ploughing, sowing), not a change of land use; two dates cannot show land-use change.`);
+  } else if (L) parts.push('No earlier cloud-free observation is available, so changes between dates cannot be shown.');
+  else parts.push('Change detection needs cloud-free Sentinel-2 observations, which are not available right now.');
+  $('cover-text').textContent = parts.join(' ');
+
+  btnC.disabled = !wc; btnX.disabled = !(L && P);
+  if (S.coverView === 'cover' && !wc) S.coverView = 'change';
+  if (S.coverView === 'change' && !(L && P)) S.coverView = wc ? 'cover' : 'change';
+  renderCoverMap();
+}
+function renderCoverMap() {
+  const v = S.coverView;
+  if (v === 'cover' && S.wc) {
+    setOverlays('cover', [{ url: url('wc', () => renderWorldCover(S.wc)), pixel: true }], S.wc.bounds);
+    $('legend-cover').innerHTML = (S.cover ? S.cover.rows.slice(0, 6) : []).map((r) => `<span class="mr-3 inline-block"><span class="legend-dot" style="background:${WC[r.k][1]}"></span>${WC[r.k][0]}</span>`).join('');
+    setNote('cover', '');
+  } else if (v === 'change' && S.L && S.P) {
+    setOverlays('cover', [{ url: url('cchg', () => renderCoverChange(S.L, S.P)), pixel: true }], S.L.bounds);
+    $('legend-cover').innerHTML = legendRow([{ color: '#ef4444', label: 'Vegetated → bare / non-vegetated' }, { color: '#34d399', label: 'Bare → vegetated' }]) + '<span class="text-white/60">Unchanged: dimmed true colour</span>';
+    setNote('cover', '');
+  } else {
+    setOverlays('cover', [], null);
+    $('legend-cover').innerHTML = '';
+    setNote('cover', S.imageryOk ? 'Change map needs two cloud-free observations' : 'Data unavailable for this view');
+  }
+  setSeg('data-cover-view', S.coverView);
+}
+
+/* =====================================================================
+   LOADERS
+   ===================================================================== */
+async function loadImagery(aoi, token) {
+  const fail = (msg) => {
+    S.imageryOk = false;
+    ['img', 'veg', 'cover'].forEach((k) => setNote(k, k === 'img' ? msg : 'No usable Sentinel-2 imagery'));
+    setBanner(msg);
+    setSrc('src-s2', 'Unavailable', 'warn');
+    $('img-caption').textContent = msg;
+    $('veg-bars').innerHTML = `<p class="text-sm text-amber-200">${esc(msg)}</p>`;
+    $('veg-text').textContent = 'Vegetation analysis needs at least one cloud-free Sentinel-2 observation.';
+  };
+  setNote('img', 'Searching the Sentinel-2 archive…', 'info');
+  setNote('veg', 'Waiting for imagery…', 'info');
+  setSrc('src-s2', 'Searching…');
+
+  let items;
+  try { items = await searchS2(aoi); }
+  catch (e) { console.error(e); if (token === loadToken) fail('Could not reach the Sentinel-2 catalogue (Earth Search). Check your connection and reload.'); return; }
+  if (token !== loadToken) return;
+  if (!items.length) { fail(`No Sentinel-2 scenes cover this location in the last ${CFG.lookbackDays} days.`); return; }
+
+  const scenes = pickTileScenes(items);
+  const assessed = [];
+  setNote('img', 'Checking cloud cover on recent passes…', 'info');
+  for (let i = 0; i < scenes.length; i += 4) {
+    const res = await Promise.all(scenes.slice(i, i + 4).map((it) => assessScene(it, aoi)));
+    if (token !== loadToken) return;
+    assessed.push(...res);
+    if (assessed.filter((a) => a.usable).length >= 2 && assessed.length >= 6) break;
+  }
+  S.assessed = assessed;
+  renderTimeline(assessed);
+  const usable = assessed.filter((a) => a.usable);
+  if (!usable.length) {
+    const reason = assessed.every((a) => a.status === 'error') ? 'Sentinel-2 image files could not be read from the browser.' : `No cloud-free Sentinel-2 pass (≤ ${CFG.maxLocalCloud}% cloud/shadow) in the last ${CFG.lookbackDays} days.`;
+    fail(reason); return;
+  }
+
+  setNote('img', 'Reading Sentinel-2 bands…', 'info');
+  let Ls, Ps = null;
+  try { [Ls, Ps] = await Promise.all([loadScene(usable[0], aoi), usable[1] ? loadScene(usable[1], aoi).catch((e) => { console.warn('Previous scene failed', e); return null; }) : null]); }
+  catch (e) { console.error(e); if (token === loadToken) fail('Sentinel-2 imagery could not be read. The image server may be blocking browser access; try again.'); return; }
+  if (token !== loadToken) return;
+  if (Ps && (Ps.win.x0 !== Ls.win.x0 || Ps.win.y0 !== Ls.win.y0 || Ps.w !== Ls.w || Ps.h !== Ls.h)) Ps = null;   // grids must match
+
+  S.L = Ls; S.P = Ps; S.imageryOk = true;
+  setNote('img', ''); setNote('veg', '');
+  renderObservations(assessed);
+
+  const newest = assessed[0];
+  const msgs = [];
+  if (newest !== usable[0] && newest.status === 'cloudy') msgs.push(`The newest pass (${fmtDate(newest.date)}) is ${num(newest.localCloud, 0)}% cloudy over this area, so the latest cloud-free pass is shown instead.`);
+  else if (newest !== usable[0] && newest.status === 'nodata') msgs.push(`The newest pass (${fmtDate(newest.date)}) has no data over this exact spot.`);
+  if (!Ps) msgs.push(`No earlier cloud-free pass in the last ${CFG.lookbackDays} days (or on a matching grid), so no comparison is available.`);
+  else if (daysBetween(Ps.date, Ls.date) > 30) msgs.push(`The comparison spans ${daysBetween(Ps.date, Ls.date)} days.`);
+  setBanner(msgs.join(' '), newest !== usable[0] ? 'warn' : 'info');
+  if (daysBetween(Ls.date, new Date().toISOString()) > 20) setBanner([...msgs, `The latest usable image is ${daysBetween(Ls.date, new Date().toISOString())} days old.`].join(' '), 'warn');
+
+  setSrc('src-s2', `Live · latest usable ${fmtDate(Ls.date)}`, 'ok');
+  $('sat-status').textContent = `Latest usable image ${fmtDate(Ls.date)}`;
+  renderImageryMap();
+  renderVegetation();
+}
+
+/* ---------- ESA WorldCover ----------
+   Tries the Earth Search catalogue link first, then the public ESA bucket (2021, v200).
+   If neither can be read from the browser, S.wc stays null and the page hides the
+   WorldCover parts (see renderCoverSection) instead of showing an error panel. */
+async function loadWorldCover(aoi, token) {
+  setNote('cover', 'Loading land cover…', 'info');
+  setSrc('src-wc', 'Loading…');
+  const candidates = [];
+  try {
+    const feats = await stacSearch({ collections: ['esa-worldcover'], intersects: { type: 'Point', coordinates: [aoi.lon, aoi.lat] }, limit: 5, sortby: [{ field: 'properties.datetime', direction: 'desc' }] });
+    const f = feats.find((x) => x.assets && x.assets.map);
+    if (f) candidates.push({ href: f.assets.map.href, year: (f.properties.datetime || '').slice(0, 4) });
+  } catch (e) { console.warn('WorldCover STAC lookup failed', e); }
+  {   // public ESA bucket; 3° × 3° tiles named by SW corner
+    const la = Math.floor(aoi.lat / 3) * 3, lo = Math.floor(aoi.lon / 3) * 3;
+    const name = `${la >= 0 ? 'N' : 'S'}${String(Math.abs(la)).padStart(2, '0')}${lo >= 0 ? 'E' : 'W'}${String(Math.abs(lo)).padStart(3, '0')}`;
+    const href = `https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_${name}_Map.tif`;
+    if (!candidates.some((c) => c.href === href)) candidates.push({ href, year: '2021' });
+  }
+  for (const c of candidates) {
+    try {
+      const wc = await readWindow(c.href, aoi, { epsg: null });
+      if (token !== loadToken) return;
+      S.wc = wc; S.wcYear = c.year;
+      setSrc('src-wc', `Live · reference year ${c.year}`, 'ok');
+      return;
+    } catch (e) { console.warn('WorldCover read failed for', c.href, e); }
+  }
+  if (token !== loadToken) return;
+  S.wc = null;
+}
+
+/* ---------- Soil: SoilGrids ----------
+   SoilGrids' public server is slow and rate-limited. So: ONE request for all properties,
+   up to 3 attempts (later attempts ask for less), a 30-day cache, and an older cached copy
+   (clearly labelled) if the server is down. If everything fails the mapped-properties block
+   is hidden and a one-line note with a Retry button replaces it. Nothing is ever made up. */
+const SOIL_PROPS = ['clay', 'sand', 'silt', 'phh2o', 'soc'];
+const DEPTHS = ['0-5cm', '5-15cm', '15-30cm'];
+const SOIL_FOOT = 'Texture, pH and organic carbon come from ISRIC SoilGrids 2.0: 250 m machine-learning maps predicted from soil-profile samples around the world. They are regional predictions, not laboratory measurements from this farm. A soil test gives the real values.';
+const SOIL_SUB = 'Modelled estimate + mapped dataset · no sensor on this farm';
+function soilCacheKey(aoi) { return `bhoomi.soil.v2.${aoi.lat.toFixed(3)},${aoi.lon.toFixed(3)}`; }
+async function soilRequest(aoi, values, timeoutMs) {
+  const p = new URLSearchParams();
+  p.set('lon', aoi.lon); p.set('lat', aoi.lat);
+  SOIL_PROPS.forEach((x) => p.append('property', x));
+  DEPTHS.forEach((x) => p.append('depth', x));
+  values.forEach((x) => p.append('value', x));
+  const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(`${CFG.soilgrids}?${p}`, { signal: ctrl.signal });
+    if (!r.ok) { const err = new Error('SoilGrids HTTP ' + r.status); err.status = r.status; throw err; }
+    return parseSoil(await r.json());
+  } finally { clearTimeout(timer); }
+}
+async function fetchSoil(aoi, force = false) {
+  const key = soilCacheKey(aoi);
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(key) || 'null'); } catch {}
+  const fresh = cached && cached.data && Date.now() - cached.t < CFG.soilCacheDays * 864e5;
+  if (!force && fresh) return { data: cached.data, t: cached.t, stale: false };
+
+  const plans = [['mean', 'Q0.05', 'Q0.95'], ['mean'], ['mean']];   // lighter requests on retries
+  let lastErr = null;
+  for (let i = 0; i < plans.length; i++) {
+    try {
+      const data = await soilRequest(aoi, plans[i], 25000);
+      if (!Object.values(data).some((v) => v && v.mean != null)) throw new Error('SoilGrids returned no values');
+      const t = Date.now();
+      try { localStorage.setItem(key, JSON.stringify({ t, data })); } catch {}
+      return { data, t, stale: false };
+    } catch (e) {
+      lastErr = e;
+      if (e.status === 400 || e.status === 404) break;               // retrying will not help
+      if (i < plans.length - 1) await sleep(e.status === 429 ? 6000 : 1500 * (i + 1));
+    }
+  }
+  if (cached && cached.data) return { data: cached.data, t: cached.t, stale: true };   // older real copy, labelled
+  throw lastErr || new Error('SoilGrids unavailable');
+}
+function parseSoil(json) {
+  const out = {};
+  for (const layer of (json.properties && json.properties.layers) || []) {
+    const f = (layer.unit_measure && layer.unit_measure.d_factor) || 1;
+    const per = {}; const acc = { mean: 0, w: 0, lo: 0, hi: 0, qw: 0 };
+    for (const d of layer.depths || []) {
+      const w = d.range.bottom_depth - d.range.top_depth, v = d.values || {};
+      const m = v.mean, lo = v['Q0.05'], hi = v['Q0.95'];
+      per[d.label] = { mean: m == null ? null : m / f, lo: lo == null ? null : lo / f, hi: hi == null ? null : hi / f };
+      if (m != null) { acc.w += w; acc.mean += m / f * w; }
+      if (lo != null && hi != null) { acc.qw += w; acc.lo += lo / f * w; acc.hi += hi / f * w; }
+    }
+    out[layer.name] = {
+      per, mean: acc.w ? acc.mean / acc.w : null,
+      lo: acc.qw ? acc.lo / acc.qw : null, hi: acc.qw ? acc.hi / acc.qw : null,     // null when the range was not returned
+      unit: (layer.unit_measure && layer.unit_measure.target_units) || '',
+    };
+  }
+  return out;
+}
+function usdaTexture(sand, silt, clay) {
+  if (silt + 1.5 * clay < 15) return 'Sand';
+  if (silt + 1.5 * clay >= 15 && silt + 2 * clay < 30) return 'Loamy sand';
+  if ((clay >= 7 && clay < 20 && sand > 52 && silt + 2 * clay >= 30) || (clay < 7 && silt < 50 && silt + 2 * clay >= 30)) return 'Sandy loam';
+  if (clay >= 7 && clay < 27 && silt >= 28 && silt < 50 && sand <= 52) return 'Loam';
+  if ((silt >= 50 && clay >= 12 && clay < 27) || (silt >= 50 && silt < 80 && clay < 12)) return 'Silt loam';
+  if (silt >= 80 && clay < 12) return 'Silt';
+  if (clay >= 20 && clay < 35 && silt < 28 && sand > 45) return 'Sandy clay loam';
+  if (clay >= 27 && clay < 40 && sand > 20 && sand <= 45) return 'Clay loam';
+  if (clay >= 27 && clay < 40 && sand <= 20) return 'Silty clay loam';
+  if (clay >= 35 && sand > 45) return 'Sandy clay';
+  if (clay >= 40 && silt >= 40) return 'Silty clay';
+  if (clay >= 40 && sand <= 45 && silt < 40) return 'Clay';
+  return 'Loam';
+}
+const TEXTURE_NOTE = {
+  'Sand': 'drains fast and holds little water or nutrient', 'Loamy sand': 'drains fast and holds little water', 'Sandy loam': 'drains well, moderate water holding',
+  'Loam': 'balanced drainage and water holding', 'Silt loam': 'holds water well, can crust or compact', 'Silt': 'holds water well, easily compacted',
+  'Sandy clay loam': 'moderate drainage and water holding', 'Clay loam': 'holds water and nutrients, drains slowly', 'Silty clay loam': 'holds water well, drains slowly',
+  'Sandy clay': 'holds water, drains slowly', 'Silty clay': 'holds water, drains slowly, heavy to work', 'Clay': 'holds water and nutrients, drains slowly, heavy to work',
+};
+function phCategory(p) { return p < 5.6 ? 'Acidic' : p < 6.6 ? 'Slightly acidic' : p <= 7.3 ? 'Near neutral' : p <= 8.4 ? 'Alkaline' : 'Strongly alkaline'; }
+function soilErrorMessage(e) {
+  if (e && e.name === 'AbortError') return 'SoilGrids took too long to answer (its public server is slow).';
+  if (e && e.status === 429) return 'SoilGrids is rate-limiting requests.';
+  if (e && e.status >= 500) return `SoilGrids server error (HTTP ${e.status}); the public service is sometimes offline.`;
+  if (e && e.status) return `SoilGrids refused the request (HTTP ${e.status}).`;
+  return 'SoilGrids could not be reached (offline, blocked by the browser, or the public service is down).';
+}
+function hideSoilMapped(msg) {
+  show('soil-mapped', false);
+  show('row-soil', false);
+  $('soil-sub').textContent = 'Modelled estimate · no sensor on this farm';
+  $('soil-foot').innerHTML = `<span>Mapped soil properties (texture, pH, organic carbon) are hidden because ${esc(msg)} Moisture above is unaffected.</span> <button type="button" class="lift ml-2 rounded-lg border border-white/20 px-3 py-0.5 text-xs font-bold text-emerald-300" data-soil-retry>Retry</button>`;
+}
+async function loadSoil(aoi, token, force = false) {
+  setSrc('src-soil', 'Loading…');
+  show('soil-mapped', true); show('row-soil', true);
+  $('soil-sub').textContent = SOIL_SUB;
+  $('soil-foot').textContent = SOIL_FOOT;
+  ['soil-texture', 'soil-ph', 'soil-soc'].forEach((id) => { $(id).innerHTML = '<p class="skeleton text-sm">Loading SoilGrids…</p>'; });
+  let res;
+  try { res = await fetchSoil(aoi, force); }
+  catch (e) {
+    console.warn(e);
+    if (token !== loadToken) return;
+    hideSoilMapped(soilErrorMessage(e).replace(/\.$/, '') + '.');
+    return;
+  }
+  if (token !== loadToken) return;
+  const soil = res.data;
+  const have = (k) => soil[k] && soil[k].mean != null;
+  if (!have('sand') && !have('phh2o') && !have('soc')) {
+    hideSoilMapped('SoilGrids has no values for this exact location (for example open water or built-up land).');
+    return;
+  }
+  if (!have('sand') || !have('silt') || !have('clay')) {
+    $('soil-texture').innerHTML = '<p class="text-sm text-amber-200">SoilGrids has no texture value for this location.</p>';
+  } else {
+    const n = soil.sand.mean + soil.silt.mean + soil.clay.mean;
+    const sand = soil.sand.mean / n * 100, silt = soil.silt.mean / n * 100, clay = soil.clay.mean / n * 100;
+    const cls = usdaTexture(sand, silt, clay);
+    const segs = (s, si, c) => [{ label: 'Sand', v: s, color: '#fbbf24' }, { label: 'Silt', v: si, color: '#38bdf8' }, { label: 'Clay', v: c, color: '#fb923c' }];
+    $('soil-texture').innerHTML = `
+      <p class="mb-1 text-2xl font-bold">${cls}</p>
+      <p class="muted mb-4 text-xs">USDA class from the 0–30 cm average · ${TEXTURE_NOTE[cls] || ''}</p>
+      <div class="space-y-3">${DEPTHS.map((d) => {
+        const a = soil.sand.per[d], b = soil.silt.per[d], c = soil.clay.per[d];
+        if (!a || a.mean == null || !b || b.mean == null || !c || c.mean == null) return '';
+        const t = a.mean + b.mean + c.mean;
+        return `<div><div class="mb-1 flex justify-between text-xs text-white/70"><span>${d.replace('-', '–').replace('cm', ' cm')}</span><span>${num(a.mean / t * 100, 0)} / $
+        {num(b.mean / t * 100, 0)} / ${num(c.mean / t * 100, 0)} %</span></div>${stackBar(segs(a.mean, b.mean, c.mean))}</div>`;
+      }).join('')}</div>
+      <div class="mt-3 text-xs text-white/75"><span class="mr-3"><span class="legend-dot" style="background:#fbbf24"></span>Sand</span><span class="mr-3"><span class="legend-dot" style="background:#38bdf8"></span>Silt</span><span><span class="legend-dot" style="background:#fb923c"></span>Clay</span></div>
+      <p class="muted mt-3 text-xs">SoilGrids 2.0 · 250 m grid cell · % by mass (sand / silt / clay)</p>`;
+  }
+  if (have('phh2o')) {
+    const p = soil.phh2o, pos = (v) => Math.max(0, Math.min(100, (v - 4) / 5 * 100));
+    const hasRange = p.lo != null && p.hi != null;
+    $('soil-ph').innerHTML = `
+      <p class="text-3xl font-bold">${num(p.mean, 1)} <span class="text-base font-semibold text-white/70">${phCategory(p.mean)}</span></p>
+      <div class="relative mt-5 h-3 rounded-full" style="background:linear-gradient(90deg,#f59e0b,#a3e635 35%,#34d399 55%,#38bdf8 80%,#a78bfa)">
+        ${hasRange ? `<div class="absolute -top-1 h-5 rounded border border-white/80 bg-white/10" style="left:${pos(p.lo)}%;width:${Math.max(1.5, pos(p.hi) - pos(p.lo))}%" title="5–95% prediction range"></div>` : ''}
+        <div class="absolute -top-2 h-7 w-1 rounded bg-white" style="left:calc(${pos(p.mean)}% - 2px)"></div>
+      </div>
+      <div class="mt-2 flex justify-between text-xs text-white/60"><span>4 acidic</span><span>6.5</span><span>9 alkaline</span></div>
+      <p class="mt-3 text-sm leading-6 text-white/85">${hasRange ? `Prediction range ${num(p.lo, 1)}–${num(p.hi, 1)} (5–95%, depth-averaged, approximate). ` : 'Prediction range not returned by the server this time. '}Most crops do best between about 6 and 7.5.</p>
+      <p id="soil-ph-crop" class="mt-3 text-sm font-bold text-emerald-300"></p>
+      <p class="muted mt-3 text-xs">SoilGrids 2.0 · 250 m · pH in water · 0–30 cm, weighted by layer thickness</p>`;
+  } else $('soil-ph').innerHTML = '<p class="text-sm text-amber-200">No pH value available for this location.</p>';
+  S.phMean = have('phh2o') ? soil.phh2o.mean : null;
+  updateCropPh();
+  if (have('soc')) {
+    const s = soil.soc, max = 50, pos = (v) => Math.max(0, Math.min(100, v / max * 100));
+    const hasRange = s.lo != null && s.hi != null;
+    $('soil-soc').innerHTML = `
+      <p class="text-3xl font-bold">${num(s.mean, 1)} <span class="text-base font-semibold text-white/70">${esc(s.unit || 'g/kg')}</span></p>
+      <div class="relative mt-5 h-3 rounded-full bg-white/10">
+        <div class="absolute left-0 top-0 h-3 rounded-full bg-emerald-400" style="width:${pos(s.mean)}%"></div>
+        ${hasRange ? `<div class="absolute -top-1 h-5 rounded border border-white/80 bg-white/10" style="left:${pos(s.lo)}%;width:${Math.max(1.5, pos(s.hi) - pos(s.lo))}%" title="5–95% prediction range"></div>` : ''}
+      </div>
+      <div class="mt-2 flex justify-between text-xs text-white/60"><span>0</span><span>${max} ${esc(s.unit || 'g/kg')}</span></div>
+      <p class="mt-3 text-sm leading-6 text-white/85">${hasRange ? `Prediction range ${num(s.lo, 1)}–${num(s.hi, 1)} ${esc(s.unit || 'g/kg')}. ` : ''}Higher organic carbon generally means better soil structure, water retention and nutrient supply.</p>
+      <p class="muted mt-3 text-xs">SoilGrids 2.0 · 250 m · 0–30 cm, weighted by layer thickness</p>`;
+  } else $('soil-soc').innerHTML = '<p class="text-sm text-amber-200">No organic carbon value available for this location.</p>';
+
+  const when = new Date(res.t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (res.stale) {
+    setSrc('src-soil', `Cached copy from ${when} (SoilGrids is unreachable right now)`, 'warn');
+    $('soil-foot').textContent = `Showing a saved copy of SoilGrids data fetched on ${when}, because the live service did not respond. Soil properties change very slowly, so this is still valid. ` + SOIL_FOOT;
+  } else {
+    setSrc('src-soil', 'Live · SoilGrids 2.0 (static maps, no observation date)', 'ok');
+  }
+}
+
+
+/* Indicative pH ranges per crop; a soil test and local advice (KVK) take priority. */
+const CROP_PH = {
+  wheat:[6.0,7.5], rice:[5.5,7.0], maize:[5.8,7.0], sugarcane:[6.0,7.5], potato:[5.0,6.5], mustard:[6.0,7.5],
+  cotton:[6.0,8.0], soybean:[6.0,7.0], tomato:[6.0,6.8], onion:[6.0,7.0], gram:[6.0,7.5], bajra:[6.0,7.5],
+};
+function updateCropPh() {
+  const el = $('soil-ph-crop'), c = BHOOMI.crop();
+  if (S.phMean == null) { el.textContent = ''; return; }
+  if (!c) { el.textContent = 'Select a crop on the Dashboard to see how this pH suits it.'; return; }
+  const [lo, hi] = CROP_PH[c.key], p = S.phMean;
+  el.textContent = p < lo ? `${c.name} generally prefers pH ${lo}–${hi}; this is more acidic than that (indicative).`
+                 : p > hi ? `${c.name} generally prefers pH ${lo}–${hi}; this is more alkaline than that (indicative).`
+                 : `Within the usual pH range for ${c.name} (${lo}–${hi}, indicative).`;
+}
+window.addEventListener('bhoomi:crop', updateCropPh);
+
+
+/* ---------- Soil moisture: Open-Meteo ---------- */
+const MOISTURE_SETS = [
+  [{ key: 'soil_moisture_0_to_1cm', label: '0–1 cm' }, { key: 'soil_moisture_3_to_9cm', label: '3–9 cm' }, { key: 'soil_moisture_9_to_27cm', label: '9–27 cm' }, { key: 'soil_moisture_27_to_81cm', label: '27–81 cm' }],
+  [{ key: 'soil_moisture_0_to_7cm', label: '0–7 cm' }, { key: 'soil_moisture_7_to_28cm', label: '7–28 cm' }, { key: 'soil_moisture_28_to_100cm', label: '28–100 cm' }],
+];
+async function fetchMoisture(aoi) {
+  for (const set of MOISTURE_SETS) {
+    const p = new URLSearchParams({ latitude: aoi.lat, longitude: aoi.lon, hourly: set.map((s) => s.key).join(','), past_days: 14, forecast_days: 1, timezone: 'auto' });
+    const r = await fetch(`${CFG.openMeteo}?${p}`);
+    if (r.ok) return { data: await r.json(), set };
+    if (r.status !== 400) throw new Error('Open-Meteo HTTP ' + r.status);
+  }
+  throw new Error('No soil-moisture layers available');
+}
+function trendChart(labels, series, W = 700, H = 230) {
+  const pad = { l: 52, r: 14, t: 14, b: 28 };
+  const vals = series.flatMap((s) => s.values.filter((v) => v != null));
+  if (!vals.length) return '<p class="text-sm text-amber-200">No data available.</p>';
+  const lo = Math.max(0, Math.min(...vals) - 0.02), hi = Math.max(...vals) + 0.02;
+  const y = (v) => pad.t + (H - pad.t - pad.b) * (1 - (v - lo) / (hi - lo));
+  const x = (i) => pad.l + (W - pad.l - pad.r) * i / Math.max(1, labels.length - 1);
+  let g = '', paths = '', dots = '', txt = '';
+  for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4; g += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(255,255,255,.1)"/><text x="${pad.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(2)}</text>`; }
+  series.forEach((s) => {
+    let d = '', pen = false;
+    s.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i)} ${y(v)} `; pen = true; dots += `<circle class="dot" cx="${x(i)}" cy="${y(v)}" r="3" fill="${s.color}"><title>${labels[i]} · ${s.name}: ${v.toFixed(3)} m³/m³</title></circle>`; });
+    paths += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`;
+  });
+  labels.forEach((lb, i) => { if (i % 2 === 0 || i === labels.length - 1) txt += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${lb}</text>`; });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}${paths}${dots}${txt}</svg>`;
+}
+async function loadMoisture(aoi, token) {
+  setSrc('src-moist', 'Loading…');
+  let res;
+  try { res = await fetchMoisture(aoi); }
+  catch (e) {
+    console.warn(e);
+    if (token !== loadToken) return;
+    $('moist-chart').innerHTML = '<p class="text-sm text-amber-200">Soil-moisture estimate unavailable right now.</p>';
+    $('moist-depth').innerHTML = ''; $('moist-text').textContent = '';
+    setSrc('src-moist', 'Unavailable', 'warn');
+    return;
+  }
+  if (token !== loadToken) return;
+  const { data, set } = res, H = data.hourly;
+  const nowKey = new Date(Date.now() + (data.utc_offset_seconds || 0) * 1000).toISOString().slice(0, 13) + ':00';
+  let nowIdx = H.time.indexOf(nowKey); if (nowIdx < 0) nowIdx = H.time.length - 1;
+  const dates = [...new Set(H.time.slice(0, nowIdx + 1).map((t) => t.slice(0, 10)))];
+  const daily = (key) => dates.map((d) => { const v = []; H.time.forEach((t, i) => { if (i <= nowIdx && t.startsWith(d) && H[key][i] != null) v.push(H[key][i]); }); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; });
+  const shallow = set.length === 4 ? set[1] : set[0], root = set.length === 4 ? set[2] : set[1];
+  const sSeries = daily(shallow.key), rSeries = daily(root.key);
+  $('m-shallow-label').textContent = `${shallow.label} (shallow)`; $('m-root-label').textContent = `${root.label} (root zone)`;
+  const labels = dates.map((d) => fmtDay(d + 'T12:00:00Z'));
+  $('moist-chart').innerHTML = trendChart(labels, [{ name: shallow.label, color: '#38bdf8', values: sSeries }, { name: root.label, color: '#34d399', values: rSeries }]);
+  $('moist-depth').innerHTML = set.map((l) => {
+    const v = H[l.key][nowIdx];
+    return `<div><div class="mb-1 flex justify-between text-xs"><span class="font-bold text-white/85">${l.label}</span><span class="text-white/80">${v == null ? '—' : v.toFixed(3) + ' m³/m³'}</span></div><div class="h-2 overflow-hidden rounded-full bg-white/10"><div class="h-full rounded-full bg-sky-400" style="width:${v == null ? 0 : Math.min(100, v / 0.6 * 100)}%"></div></div></div>`;
+  }).join('') + '<p class="muted text-xs">Bar scale 0–0.6 m³/m³ (volume of water per volume of soil).</p>';
+  const nowV = rSeries[rSeries.length - 1], past = rSeries.length > 7 ? rSeries[rSeries.length - 8] : rSeries[0];
+  if (nowV != null && past != null) {
+    const diff = nowV - past;
+    $('moist-text').textContent = Math.abs(diff) < 0.01
+      ? `Root-zone (${root.label}) moisture is about the same as 7 days ago (${past.toFixed(3)} → ${nowV.toFixed(3)} m³/m³).`
+      : `Root-zone (${root.label}) moisture is ${diff > 0 ? 'higher' : 'lower'} than 7 days ago (${past.toFixed(3)} → ${nowV.toFixed(3)} m³/m³).`;
+  }
+  setSrc('src-moist', `Live · model hour ${H.time[nowIdx].replace('T', ' ')} (local)`, 'ok');
+}
+
+
+
+/* ---------- Site conditions: Open-Meteo (elevation, soil temperature, ET0) ---------- */
+async function loadSite(aoi, token) {
+  setSrc('src-site', 'Loading…');
+  try {
+    const p = new URLSearchParams({
+      latitude: aoi.lat, longitude: aoi.lon,
+      hourly: 'soil_temperature_6cm,soil_temperature_18cm',
+      daily: 'et0_fao_evapotranspiration,precipitation_sum',
+      past_days: 7, forecast_days: 1, timezone: 'auto',
+    });
+    const r = await fetch(`${CFG.openMeteo}?${p}`);
+    if (!r.ok) throw new Error('Open-Meteo HTTP ' + r.status);
+    const d = await r.json();
+    if (token !== loadToken) return;
+    const H = d.hourly, D = d.daily;
+    const nowKey = new Date(Date.now() + (d.utc_offset_seconds || 0) * 1000).toISOString().slice(0, 13) + ':00';
+    let i = H.time.indexOf(nowKey); if (i < 0) i = H.time.length - 1;
+    const past = (a) => a.slice(0, 7).filter((v) => v != null);
+    const et0 = past(D.et0_fao_evapotranspiration).reduce((s, v) => s + v, 0);
+    const rain = past(D.precipitation_sum).reduce((s, v) => s + v, 0);
+    const bal = rain - et0;
+    const tile = (label, value, note) => `<div class="card p-5"><p class="mb-1 text-xs uppercase tracking-wider text-white/50">${label}</p><p class="text-3xl font-semibold">${value}</p><p class="mt-2 text-xs text-white/40">${note}</p></div>`;
+    $('site-cards').innerHTML =
+      tile('Elevation', d.elevation == null ? '—' : `${num(d.elevation, 0)} m`, 'Model terrain height for this grid cell') +
+      tile('Soil temp · 6 cm', `${num(H.soil_temperature_6cm[i], 1)}°C`, 'Seed-zone temperature, modelled') +
+      tile('Soil temp · 18 cm', `${num(H.soil_temperature_18cm[i], 1)}°C`, 'Root-zone temperature, modelled') +
+      tile('Water balance · 7 days', `${sgn(bal, 0)} mm`, `${num(rain, 0)} mm rain − ${num(et0, 0)} mm ET₀. Negative means the air pulled out more water than fell (before irrigation).`);
+    setSrc('src-site', `Live · model hour ${H.time[i].replace('T', ' ')} (local)`, 'ok');
+  } catch (e) {
+    console.warn(e);
+    if (token !== loadToken) return;
+    $('site-cards').innerHTML = '<p class="text-sm text-amber-200">Site conditions unavailable right now.</p>';
+    setSrc('src-site', 'Unavailable', 'warn');
+  }
+}
+
+
+
+/* =====================================================================
+   ORCHESTRATION
+   ===================================================================== */
+function resetUI() {
+  S.phMean = null;
+  S.L = S.P = S.wc = null; S.urls = {}; S.assessed = []; S.imageryOk = false; S.cover = null;
+  S.imgView = 'tc'; S.vegView = 'latest'; S.coverView = 'cover';
+  setSeg('data-img-view', 'tc'); setSeg('data-veg-view', 'latest'); setSeg('data-cover-view', 'cover');
+  $('cmp').value = 100; $('cmp').disabled = true;
+  ['obs-latest-date', 'obs-prev-date'].forEach((id) => { $(id).textContent = '—'; });
+  ['obs-latest-meta', 'obs-prev-meta'].forEach((id) => { $(id).textContent = '—'; });
+  $('cmp-latest-date').textContent = '—'; $('cmp-prev-date').textContent = '—';
+  $('timeline').innerHTML = '<p class="skeleton text-sm">Loading…</p>';
+  $('img-caption').textContent = 'Searching for Sentinel-2 scenes…';
+  setBanner('');
+  $('legend-img').classList.add('hidden');
+  $('veg-bars').innerHTML = '<p class="skeleton text-sm">Waiting for imagery…</p>';
+  $('veg-means').className = 'hidden';
+  $('veg-text').textContent = '—';
+  $('legend-veg').innerHTML = ''; $('legend-cover').innerHTML = '';
+  $('moist-chart').innerHTML = '<p class="skeleton text-sm">Loading soil moisture…</p>';
+  $('moist-depth').innerHTML = ''; $('moist-text').textContent = '';
+  ['soil-texture', 'soil-ph', 'soil-soc'].forEach((id) => { $(id).innerHTML = '<p class="skeleton text-sm">Loading SoilGrids…</p>'; });
+  $('cover-bars').innerHTML = '<p class="skeleton text-sm">Loading land cover…</p>';
+  $('state-bars').innerHTML = '<p class="skeleton text-sm">Waiting for imagery…</p>';
+  $('cover-text').textContent = '—';
+  $('wc-year').textContent = '—';
+  show('cover-comp', true); show('row-wc', true); show('soil-mapped', true); show('row-soil', true);
+  document.querySelector('[data-cover-view="cover"]').style.display = '';
+  $('state-wrap').style.borderTopWidth = ''; $('state-wrap').style.paddingTop = '';
+  $('soil-sub').textContent = SOIL_SUB; $('soil-foot').textContent = SOIL_FOOT;
+  $('site-cards').innerHTML = '<p class="skeleton text-sm">Loading…</p>';
+  ['s2', 'wc', 'soil', 'moist', 'site'].forEach((k) => setSrc('src-' + k, 'Waiting…'));
+  $('cloud-limit').textContent = CFG.maxLocalCloud;
+}
+
+async function loadAll() {
+  const token = ++loadToken;
+  const aoi = buildAOI(); S.aoi = aoi;
+  resetUI();
+  $('coords').textContent = `${aoi.lat.toFixed(4)}°N, ${aoi.lon.toFixed(4)}°E`;
+  $('aoi-size').textContent = `${(aoi.halfMeters * 2 / 1000).toFixed(0)} × ${(aoi.halfMeters * 2 / 1000).toFixed(0)} km`;
+  $('sat-status').textContent = 'Loading satellite data…';
+  ['img', 'veg', 'cover'].forEach((k) => ensureMap(k, aoi));
+
+  const imageryP = loadImagery(aoi, token);
+  const coverP = loadWorldCover(aoi, token);
+  loadSoil(aoi, token);
+  loadMoisture(aoi, token);
+  loadSite(aoi, token);  
+  await Promise.allSettled([imageryP, coverP]);
+  if (token !== loadToken) return;
+  renderCoverSection();
+  if (!S.imageryOk) $('sat-status').textContent = 'No usable imagery';
+}
+
+/* ---------- UI wiring ---------- */
+document.querySelectorAll('[data-img-view]').forEach((b) => b.addEventListener('click', () => { S.imgView = b.dataset.imgView; renderImageryMap(); }));
+document.querySelectorAll('[data-veg-view]').forEach((b) => b.addEventListener('click', () => { if (b.disabled) return; S.vegView = b.dataset.vegView; renderVegMap(); }));
+document.querySelectorAll('[data-cover-view]').forEach((b) => b.addEventListener('click', () => { if (b.disabled) return; S.coverView = b.dataset.coverView; renderCoverMap(); }));
+$('cmp').addEventListener('input', () => {
+  const m = maps.img; if (!m || !S.L || !S.P) return;
+  if (m.overlays[1]) m.overlays[1].setOpacity(+$('cmp').value / 100);
+  updateCaption();
+});
+$('cmp-latest-btn').addEventListener('click', () => { if (!$('cmp').disabled) { $('cmp').value = 100; $('cmp').dispatchEvent(new Event('input')); } });
+$('cmp-prev-btn').addEventListener('click', () => { if (!$('cmp').disabled) { $('cmp').value = 0; $('cmp').dispatchEvent(new Event('input')); } });
+document.addEventListener('click', (e) => {
+  if (e.target.closest && e.target.closest('[data-soil-retry]')) {
+    loadSoil(S.aoi, loadToken, true);      // force a live attempt; falls back to the saved copy if one exists
+  }
+});
+
+window.addEventListener('bhoomi:region', loadAll);
+loadAll();
+  </script>
+</body>
+</html>
